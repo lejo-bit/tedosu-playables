@@ -18,8 +18,7 @@ Sudoku Tetris is a web-based puzzle game that combines classic Sudoku rules with
 
 ### Game Options
 
-- **Timed mode**: Track completion time, save best scores
-- **Untimed mode**: Play without time pressure
+- **Timed mode** (always active): Track completion time, save best scores
 - **Difficulty levels**: Control how many cells are pre-filled (affects puzzle complexity)
 
 ## Core Mechanics
@@ -53,7 +52,14 @@ Game ends when all cells are filled correctly with valid values.
 /sudoku-tetris
 ├── index.html      # Game UI and structure
 ├── style.css       # Visual styling and responsive design
-├── script.js       # Game logic and algorithms
+├── /js             # Game logic (split into focused modules)
+│   ├── config.js   # Game modes, descriptions, difficulty rules
+│   ├── state.js    # Shared mutable game state
+│   ├── dom.js      # DOM element references
+│   ├── seeded.js   # Deterministic 64-bit RNG + seeded Sudoku generator
+│   ├── puzzle.js   # Seeded puzzle generation (solution + playable puzzle)
+│   ├── game.js     # Core game logic (moves, lives, timers, win/lose, seeds)
+│   └── ui.js       # Rendering, messages, picker, startup wiring
 ├── project.md      # This documentation
 └── /assets
     └── cats/       # Cat icon images (to be added)
@@ -102,8 +108,6 @@ Game ends when all cells are filled correctly with valid values.
 
 ## Future Enhancements
 
-- **Hint system**: Highlight valid cells for current piece
-- **Undo feature**: Allow players to reverse recent moves
 - **Themes**: Dark/light mode, custom color schemes
 - **Multiplayer**: Turn-based competition with friends
 - **Mobile optimization**: Touch-friendly interface
