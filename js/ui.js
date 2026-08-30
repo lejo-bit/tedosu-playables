@@ -18,6 +18,7 @@ function goToMenu() {
   pieceTimerWrapEl.hidden = true;
   seedBarEl.hidden = true;
   gameState.gameActive = false;
+  winModal.hidden = true;
   winModal.classList.remove('active');
   boardEl.innerHTML = '';
   currentPieceDisplay.textContent = '-';
@@ -294,10 +295,12 @@ resetBtn.addEventListener('click', () => startNewGame({ keepSeed: true })); // R
 hintBtn.addEventListener('click', showHint);
 menuBtn.addEventListener('click', goToMenu);
 winPlayAgainBtn.addEventListener('click', () => {
+  winModal.hidden = true;
   winModal.classList.remove('active');
   startNewGame();
 });
 winMenuBtn.addEventListener('click', () => {
+  winModal.hidden = true;
   winModal.classList.remove('active');
   goToMenu();
 });

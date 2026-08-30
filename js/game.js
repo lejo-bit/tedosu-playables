@@ -221,17 +221,17 @@ function applySpecialPiece(piece, row, col) {
         endGame(true);
         return;
       }
-      showMessage('Joker! Placed the correct number.', 'success');
+      showMessage('Joker: Placed the correct number.', 'success');
       break;
 
     case 'reveal':
       revealNeighbors(row, col);
-      showMessage('Spy! Numbers shown for 1 second.', 'info');
+      showMessage('Spy: Numbers shown for 1 second.', 'info');
       break;
 
     case 'shield':
       gameState.shieldActive = true;
-      showMessage('Shield active - mistakes are free for the rest of the game!', 'success');
+      showMessage('Shield active: no mistakes on this field for the rest of the game!', 'success');
       break;
 
     case 'hints':
@@ -351,6 +351,7 @@ function endGame(won) {
     showMessage('Game over - better luck next time!', 'error');
   }
 
+  winModal.hidden = false;
   winModal.classList.add('active');
 }
 

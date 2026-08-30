@@ -1,8 +1,8 @@
 /* ===== Theme ===== */
 :root {
-  --bg-1: #f2f5ff;
-  --bg-2: #dfe8fb;
-  --bg-3: #f7f4ff;
+  --bg-1: #f8f9fc;
+  --bg-2: #eef1f8;
+  --bg-3: #fbfbfe;
   --accent: #6653e6;
   --accent-2: #0aa6c6;
   --accent-3: #f2568d;
@@ -54,9 +54,9 @@ body {
   animation: float 18s ease-in-out infinite;
 }
 
-.blob--1 { width: 520px; height: 520px; background: #b9c6ff; top: -180px; left: -140px; opacity: 0.55; }
-.blob--2 { width: 460px; height: 460px; background: #a5e0ff; bottom: -160px; right: -120px; opacity: 0.55; animation-delay: -6s; }
-.blob--3 { width: 380px; height: 380px; background: #ffc4d6; top: 35%; left: 62%; opacity: 0.4; animation-delay: -11s; }
+.blob--1 { width: 520px; height: 520px; background: #cdd6ff; top: -180px; left: -140px; opacity: 0.32; }
+.blob--2 { width: 460px; height: 460px; background: #c2e8ff; bottom: -160px; right: -120px; opacity: 0.32; animation-delay: -6s; }
+.blob--3 { width: 380px; height: 380px; background: #ffd6e1; top: 35%; left: 62%; opacity: 0.24; animation-delay: -11s; }
 
 @keyframes float {
   0%, 100% { transform: translate(0, 0) scale(1); }
