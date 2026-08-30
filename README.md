@@ -163,4 +163,7 @@ Scripts are loaded in the order above by `index.html` and share a single global 
 
 ## License
 
-No license file is included in the repository yet — all rights reserved by default. If you'd like this project released under a specific license (e.g. MIT), let me know and I can add it.
+This project is licensed under the
+[CC BY-NC 4.0 License](https://creativecommons.org/licenses/by-nc/4.0/).
+
+You may copy, modify, and redistribute this project for non-commercial purposes, provided that appropriate credit is given to the original author.
