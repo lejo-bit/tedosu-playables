@@ -16,7 +16,7 @@ No build step, no dependencies, no server required — just open `index.html` an
 - 🎚️ **Three difficulty levels** — each with its own lives, warning colors, per-piece timers, and special-piece odds
 - 🎲 **Seeded puzzles** — every game is generated deterministically from a seed, so puzzles can be shared and replayed
 - 🧩 **Fair dealing** — you are only ever handed a piece that has at least one legal spot on the board, so the game never dead-ends
-- ⭐ **Special cat power-ups** — Joker, Spy, Loki, and Daya appear as surprise pieces in 9×9 and 16×16 games (two need a click, two auto-resolve)
+- ⭐ **Special cat power-ups** — Chu-chu, Ymil, Loki, and Daya appear as surprise pieces in 9×9 and 16×16 games (two need a click, two auto-resolve)
 - ⏱️ **Per-piece countdown timers** — each piece must be placed before time runs out
 - ❤️ **Lives** — every wrong move costs a heart, and so does letting a piece time out
 - 🏆 **Best-time tracking** — your fastest completion per mode is saved in `localStorage`
