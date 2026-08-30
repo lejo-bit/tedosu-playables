@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sudoku Tetris</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Animated background -->
+  <div class="bg" aria-hidden="true">
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
+  </div>
+
+  <main class="container">
+    <!-- ═══════════════ START SCREEN ═══════════════ -->
+    <section id="startScreen" class="screen active">
+      <div class="hero">
+        <div class="hero-emoji">🧩</div>
+        <h1 class="title">Sudoku <span class="gradient-text">Tetris</span></h1>
+        <p class="tagline">One piece at a time.<br />Fill the grid. Beat the clock.</p>
+      </div>
+
+      <div class="card settings-card">
+        <div class="setting-group">
+          <label for="gameMode">🎮 Game Mode</label>
+          <select id="gameMode">
+            <option value="kids-4">Kids 4x4 (Cats)</option>
+            <option value="classic-9" selected>Classic 9x9</option>
+            <option value="hex-8">Hex 8x8</option>
+            <option value="hex-12">Hex 12x12</option>
+            <option value="hex-16">Hex 16x16</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label for="difficulty">🎯 Difficulty</label>
+          <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <label class="toggle" for="timedMode">
+          <input type="checkbox" id="timedMode" checked />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">⏱ Timed Mode</span>
+        </label>
+      </div>
+
+      <button id="startBtn" class="btn btn-primary">▶ Start Game</button>
+    </section>
+
+    <!-- ═══════════════ GAME SCREEN ═══════════════ -->
+    <section id="gameScreen" class="screen">
+      <header class="game-header">
+        <button id="menuBtn" class="btn btn-ghost" title="Back to menu">← Menu</button>
+        <div class="game-title">
+          <h2 id="gameModeTitle">Classic 9x9</h2>
+          <span id="gameBadge" class="badge">Medium</span>
+        </div>
+        <button id="newGameBtn" class="btn btn-ghost" title="Start a new game">↻ New</button>
+      </header>
+
+      <div class="game-info">
+        <div class="stat">
+          <span class="stat-icon">⏱</span>
+          <div>
+            <span class="stat-label">Time</span>
+            <span id="timer" class="stat-value">00:00</span>
+          </div>
+        </div>
+        <div class="stat">
+          <span class="stat-icon">👆</span>
+          <div>
+            <span class="stat-label">Moves</span>
+            <span id="moveCount" class="stat-value">0</span>
+          </div>
+        </div>
+        <div class="stat">
+          <span class="stat-icon">⚠️</span>
+          <div>
+            <span class="stat-label">Errors</span>
+            <span id="errorCount" class="stat-value">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="current-piece">
+        <span class="piece-label">Current Piece</span>
+        <div id="currentPieceDisplay" class="piece-display">-</div>
+      </div>
+
+      <div id="board" class="board"></div>
+
+      <div class="controls">
+        <button id="hintBtn" class="btn btn-secondary">💡 Hint</button>
+        <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
+      </div>
+
+      <div id="message" class="message"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
