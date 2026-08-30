@@ -9,8 +9,8 @@ function makeEl(id) {
     _children: [],
     classList: {
       _set: new Set(),
-      add(c) { this._set.add(c); },
-      remove(c) { this._set.delete(c); },
+      add(...classes) { for (const c of classes) this._set.add(c); },
+      remove(...classes) { for (const c of classes) this._set.delete(c); },
       toggle(c, force) {
         if (force === undefined) { this._set.has(c) ? this._set.delete(c) : this._set.add(c); }
         else if (force) this._set.add(c); else this._set.delete(c);
@@ -52,6 +52,10 @@ const sandbox = {
   setTimeout: (fn, ms) => { sandbox.__timers.push({ fn, ms }); return sandbox.__timers.length; },
   clearTimeout: () => {},
   __timers: [],
+  __frames: [],           // captured requestAnimationFrame callbacks
+  __clock: 0,             // controllable clock for performance.now()
+  performance: { now: () => sandbox.__clock },
+  requestAnimationFrame: (fn) => { sandbox.__frames.push(fn); return sandbox.__frames.length; },
   localStorage: { getItem: () => null, setItem: () => {} },
   document: {
     getElementById: getEl,
@@ -130,23 +134,25 @@ const testCode = `
   }
 
   // TEST B: a wrong (non-solution) placement is rejected - the board is never
-  // corrupted, and the mistake escalation still applies.
+  // corrupted, and every wrong move costs exactly one life.
   setup('classic-9', 'easy');
   gameState.difficulty = 'easy';
   gameState.solution = Array.from({ length: 9 }, () => Array(9).fill(0)); // 0 != value 1 -> every cell is wrong
   gameState.puzzle = Array.from({ length: 9 }, () => Array(9).fill(null));
   gameState.board = gameState.puzzle.map(r => [...r]);
-  gameState.warns = gameState.board.map(r => r.map(() => null));
   gameState.currentPiece = 1; // value 1
   gameState.gameActive = true;
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.errors = 0;
   renderBoard();
-  handleCellClick(0, 0); // wrong -> rejected
+  handleCellClick(0, 0); // wrong -> rejected + 1 life lost
   __results.wrongRejected = gameState.board[0][0] === null; // expect true
-  __results.wrongStrikes = gameState.strikes; // expect 1
-  __results.wrongLives = gameState.lives; // expect 3 (easy: 4th wrong loses a life)
+  __results.wrongLives = gameState.lives; // expect 2 (every wrong move costs a life)
+  __results.wrongErrors = gameState.errors; // expect 1
+  __results.wrongNoWarn =
+    !boardEl.children[0].classList.contains('cell-warn-yellow') &&
+    !boardEl.children[0].classList.contains('cell-warn-orange') &&
+    !boardEl.children[0].classList.contains('cell-warn-red'); // expect true (no colored marks)
 
   // Restore the real special-piece chances for the remaining tests.
   DIFFICULTY_RULES.easy.specialChance = origSpecialChance.easy;
@@ -198,7 +204,7 @@ const testCode = `
   __results.loseShown = winModal.classList.contains('active');
   __results.loseTitle = winTitleEl.textContent;
 
-  // TEST F: hard mode loses one life per wrong click -> game over at 0.
+  // TEST F: every wrong move loses one life (any difficulty) -> game over at 0.
   gameState.mode = GAME_MODES['kids-4'];
   gameState.difficulty = 'hard';
   gameState.board = Array.from({ length: 4 }, () => Array(4).fill(null));
@@ -208,82 +214,59 @@ const testCode = `
   gameState.currentPiece = 'assets/cats/1.png'; // value 1
   gameState.gameActive = true;
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.errors = 0;
   renderBoard();
   handleCellClick(0, 0);
-  __results.hardLivesAfter1 = gameState.lives;
+  __results.hardLivesAfter1 = gameState.lives; // expect 2
   handleCellClick(0, 0);
   handleCellClick(0, 0);
-  __results.hardLivesAfter3 = gameState.lives;
-  __results.hardGameOver = !gameState.gameActive;
+  __results.hardLivesAfter3 = gameState.lives; // expect 0
+  __results.hardGameOver = !gameState.gameActive; // expect true
 
-  // TEST G: wrong-click warning marks persist across re-renders.
+  // TEST G: wrong clicks leave NO colored marks on the board.
   gameState.mode = GAME_MODES['kids-4'];
   gameState.difficulty = 'easy';
   gameState.board = Array.from({ length: 4 }, () => Array(4).fill(null));
   gameState.board[0][1] = 1; // conflict in row 0 for value 1
   gameState.puzzle = Array.from({ length: 4 }, () => Array(4).fill(null));
   gameState.solution = Array.from({ length: 4 }, () => Array(4).fill(0)); // force every cell wrong for value 1
-  gameState.warns = Array.from({ length: 4 }, () => Array(4).fill(null));
   gameState.currentPiece = 'assets/cats/1.png'; // value 1
   gameState.gameActive = true;
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.errors = 0;
   renderBoard();
-  handleCellClick(0, 0); // easy, strike 1 -> yellow mark on (0,0)
-  __results.warnStored = gameState.warns[0][0];
-  __results.warnClassAfterClick = boardEl.children[0].classList.contains('cell-warn-yellow');
-  renderBoard(); // re-render must keep the mark
-  __results.warnAfterRender = boardEl.children[0].classList.contains('cell-warn-yellow');
-
-  // TEST H: losing a life clears all warning marks back to white.
-  gameState.mode = GAME_MODES['kids-4'];
-  gameState.difficulty = 'easy';
-  gameState.board = Array.from({ length: 4 }, () => Array(4).fill(null));
-  gameState.board[0][1] = 1; // conflict in row 0 for value 1
-  gameState.puzzle = Array.from({ length: 4 }, () => Array(4).fill(null));
-  gameState.solution = Array.from({ length: 4 }, () => Array(4).fill(0)); // force every cell wrong for value 1
-  gameState.warns = Array.from({ length: 4 }, () => Array(4).fill(null));
-  gameState.currentPiece = 'assets/cats/1.png'; // value 1
-  gameState.gameActive = true;
-  gameState.lives = 3;
-  gameState.strikes = 0;
-  gameState.errors = 0;
-  renderBoard();
-  handleCellClick(0, 0); // strike 1 -> yellow
-  handleCellClick(0, 0); // strike 2 -> orange
-  handleCellClick(0, 0); // strike 3 -> red
-  __results.warnBeforeLifeLoss = gameState.warns[0][0]; // expect 'red'
-  handleCellClick(0, 0); // strike 4 -> lose a life, marks cleared
-  __results.warnAfterLifeLoss = gameState.warns[0][0]; // expect null
-  __results.livesAfterLifeLoss = gameState.lives; // expect 2
-  __results.cellWhiteAfterLifeLoss =
-    !boardEl.children[0].classList.contains('cell-warn-yellow') &&
-    !boardEl.children[0].classList.contains('cell-warn-orange') &&
-    !boardEl.children[0].classList.contains('cell-warn-red');
+  handleCellClick(0, 0); // wrong -> 1 life lost, no mark
+  const warnAfterClick =
+    boardEl.children[0].classList.contains('cell-warn-yellow') ||
+    boardEl.children[0].classList.contains('cell-warn-orange') ||
+    boardEl.children[0].classList.contains('cell-warn-red');
+  __results.warnAfterClick = warnAfterClick; // expect false
+  renderBoard(); // re-render must not add a mark either
+  __results.warnAfterRender =
+    boardEl.children[0].classList.contains('cell-warn-yellow') ||
+    boardEl.children[0].classList.contains('cell-warn-orange') ||
+    boardEl.children[0].classList.contains('cell-warn-red'); // expect false
+  __results.warnLives = gameState.lives; // expect 2
 
   // TEST I: per-piece timer - 9x9/16x16 only; expiry loses a life; kids has no timer.
   setup('classic-9', 'easy');
   gameState.difficulty = 'easy';
   gameState.lives = 3;
-  gameState.strikes = 0;
-  gameState.warns = gameState.board.map(r => r.map(() => null));
+  const origRandomI = Math.random;
+  Math.random = () => 0.99; // avoid special pieces for a deterministic timer test
   nextPiece();
-  __results.pieceSecondsClassic = gameState.pieceSeconds; // expect 120
-  __results.pieceTimeLeftClassic = gameState.pieceTimeLeft; // expect 120
+  __results.pieceSecondsClassic = gameState.pieceSeconds; // expect 90 (9x9 easy)
+  __results.pieceTimeLeftClassic = gameState.pieceTimeLeft; // expect 90
   __results.pieceTimerShownClassic = !pieceTimerWrapEl.hidden; // expect true
   onPieceTimerExpired(); // time-up -> lose a life, new piece + fresh timer
+  Math.random = origRandomI;
   __results.livesAfterTimeUp = gameState.lives; // expect 2
-  __results.pieceTimeLeftAfter = gameState.pieceTimeLeft; // expect 120 (restarted)
+  __results.pieceTimeLeftAfter = gameState.pieceTimeLeft; // expect 90 (restarted)
   __results.gameActiveAfter = gameState.gameActive; // expect true
 
   setup('kids-4', 'easy');
   gameState.difficulty = 'easy';
   gameState.lives = 3;
-  gameState.strikes = 0;
-  gameState.warns = gameState.board.map(r => r.map(() => null));
   nextPiece();
   __results.pieceSecondsKids = gameState.pieceSeconds; // expect 0 (no timer for kids)
   __results.pieceTimerShownKids = !pieceTimerWrapEl.hidden; // expect false
@@ -308,9 +291,9 @@ const testCode = `
   updateDifficultyDescription();
   __results.descKidsHard = difficultyDescriptionEl.textContent;
   __results.descChecksOk =
-    __results.descClassicMedium.includes('3 lives') && __results.descClassicMedium.includes('90s per piece') &&
-    __results.descClassicEasy.includes('3 lives') && __results.descClassicEasy.includes('120s per piece') &&
-    __results.descKidsHard.includes('no hints') && !__results.descKidsHard.includes('per piece');
+    __results.descClassicMedium.includes('3 lives') && __results.descClassicMedium.includes('60s per piece') && __results.descClassicMedium.includes('costs a life') && __results.descClassicMedium.includes('7.5%') &&
+    __results.descClassicEasy.includes('3 lives') && __results.descClassicEasy.includes('90s per piece') && __results.descClassicEasy.includes('15%') &&
+    __results.descKidsHard.toLowerCase().includes('no hints') && !__results.descKidsHard.includes('per piece');
 
   // TEST L: random cat logo - valid cat file + matching tooltip name.
   const allowedNames = {
@@ -341,10 +324,7 @@ const testCode = `
   setup('classic-9', 'easy');
   gameState.difficulty = 'easy';
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.hints = 0;
-  gameState.shieldActive = false;
-  gameState.warns = gameState.board.map(r => r.map(() => null));
   const origRandom = Math.random;
   Math.random = () => 0; // 0 < specialChance(0.1) -> special; weighted pick -> joker
   nextPiece();
@@ -358,77 +338,87 @@ const testCode = `
   gameState.solution = generateSolution(9, 3, 3);
   gameState.puzzle = gameState.solution.map(r => r.map(() => null));
   gameState.board = gameState.puzzle.map(r => [...r]);
-  gameState.warns = gameState.board.map(r => r.map(() => null));
-  gameState.currentPiece = { key: 'joker', file: 'assets/cats/1.png', label: 'Joker' };
+  gameState.currentPiece = { key: 'joker', file: 'assets/cats/1.png', label: 'Joker', kind: 'click' };
   gameState.gameActive = true;
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.errors = 0;
   gameState.hints = 0;
-  gameState.shieldActive = false;
   renderBoard();
   handleCellClick(2, 3);
   __results.jokerFilled = gameState.board[2][3] === gameState.solution[2][3];
 
-  // M4: reveal flashes the 8 neighbors with their correct values, then reverts.
+  // M4: reveal shows the clicked cell + every cell within 2 fields (grey),
+  // then reverts after the fade animation.
   gameState.mode = GAME_MODES['classic-9'];
   gameState.solution = generateSolution(9, 3, 3);
   gameState.puzzle = gameState.solution.map(r => r.map(() => null));
   gameState.board = gameState.puzzle.map(r => [...r]);
-  gameState.warns = gameState.board.map(r => r.map(() => null));
   gameState.gameActive = true;
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.errors = 0;
   renderBoard();
   revealNeighbors(4, 4);
   const revIdx = (r, c) => r * 9 + c;
-  __results.revealClass = boardEl.children[revIdx(3, 3)].classList.contains('reveal');
+  __results.revealClass = boardEl.children[revIdx(3, 3)].classList.contains('reveal'); // expect true
+  __results.revealClass2 = boardEl.children[revIdx(2, 2)].classList.contains('reveal'); // radius-2 cell - expect true
+  __results.revealFade = boardEl.children[revIdx(3, 3)].classList.contains('reveal-fade'); // expect true
+  __results.revealRainbow = boardEl.children[revIdx(3, 3)].style.background.startsWith('hsl('); // expect true (pastel rainbow tint)
   __results.revealText = boardEl.children[revIdx(3, 3)].textContent === String(gameState.solution[3][3]);
   const revealTimer = __timers[__timers.length - 1];
   revealTimer.fn();
   __results.revealReverted = boardEl.children[revIdx(3, 3)].textContent === '';
+  __results.revealCleared = boardEl.children[revIdx(3, 3)].style.background === ''; // expect true
 
-  // M5: shield blocks life loss + error counting on wrong clicks.
+  // M5: Loki (3.png) is an auto piece - clicks are ignored, and 3 seconds
+  // later it auto-grants one extra life.
   gameState.mode = GAME_MODES['classic-9'];
   gameState.difficulty = 'hard';
+  gameState.solution = generateSolution(9, 3, 3);
   gameState.board = Array.from({ length: 9 }, () => Array(9).fill(null));
-  gameState.board[0][1] = 1; // conflict in row 0 for value 1
-  gameState.puzzle = Array.from({ length: 9 }, () => Array(9).fill(null));
-  gameState.solution = Array.from({ length: 9 }, () => Array(9).fill(0)); // force every cell wrong for value 1
-  gameState.warns = gameState.board.map(r => r.map(() => null));
-  gameState.currentPiece = 1; // normal value
+  gameState.puzzle = gameState.board.map(r => [...r]);
+  gameState.currentPiece = { key: 'shield', file: 'assets/cats/3.png', label: 'Loki', desc: 'Extra life!', kind: 'auto' };
   gameState.gameActive = true;
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.errors = 0;
   gameState.hints = 0;
-  gameState.shieldActive = true;
   renderBoard();
-  handleCellClick(0, 0);
-  __results.shieldLives = gameState.lives; // expect 3
-  __results.shieldErrors = gameState.errors; // expect 0
+  handleCellClick(0, 0); // ignored for auto pieces
+  __results.autoClickIgnored = gameState.lives === 3 && gameState.board[0][0] === null; // expect true
+  startAutoPieceTimer(gameState.currentPiece);
+  const lokiTimer = __timers[__timers.length - 1]; // 3s auto-resolve timeout
+  lokiTimer.fn();
+  __results.shieldLives = gameState.lives; // expect 4 (extra life)
 
-  // M6: bonus hints grants +2, and showHint consumes one in 9x9.
+  // M6: Daya (4.png) is an auto piece - clicks are ignored, and 3 seconds
+  // later it activates 4x-faster timers for 60 seconds (bad luck).
   gameState.mode = GAME_MODES['classic-9'];
   gameState.difficulty = 'easy';
   gameState.solution = generateSolution(9, 3, 3); // real solution so nextPiece works
   gameState.board = Array.from({ length: 9 }, () => Array(9).fill(null));
   gameState.puzzle = gameState.board.map(r => [...r]);
-  gameState.warns = gameState.board.map(r => r.map(() => null));
-  gameState.currentPiece = { key: 'hints', file: 'assets/cats/4.png', label: 'Bonus Hints' };
+  gameState.currentPiece = { key: 'hints', file: 'assets/cats/4.png', label: 'Daya', desc: 'Bad luck!', kind: 'auto' };
   gameState.gameActive = true;
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.errors = 0;
   gameState.hints = 0;
-  gameState.shieldActive = false;
   renderBoard();
-  handleCellClick(1, 1);
-  __results.hintsAfter = gameState.hints; // expect 2
-  gameState.currentPiece = 1; // normal piece
-  showHint();
-  __results.hintsAfterUse = gameState.hints; // expect 1
+  handleCellClick(1, 1); // ignored for auto pieces
+  __results.dayaClickIgnored = gameState.board[1][1] === null; // expect true
+  startAutoPieceTimer(gameState.currentPiece);
+  const dayaTimer = __timers[__timers.length - 1]; // 3s auto-resolve timeout
+  dayaTimer.fn();
+  __results.badLuckLeft = gameState.badLuckLeft; // expect 60
+
+  // M7: bad luck makes the piece timer tick 4x faster; normal otherwise.
+  gameState.badLuckLeft = 60;
+  gameState.pieceTimeLeft = 100;
+  pieceTimerTick();
+  __results.badLuckTick = gameState.pieceTimeLeft; // expect 96
+  __results.badLuckRemaining = gameState.badLuckLeft; // expect 59
+  gameState.badLuckLeft = 0;
+  gameState.pieceTimeLeft = 100;
+  pieceTimerTick();
+  __results.normalTick = gameState.pieceTimeLeft; // expect 99
 
   // TEST N: the same seed always generates the same puzzle; seeds are stored and shown.
   const genA = generateSeededGame('0xCAFEBABE', 9, 3, 3, 'medium');
@@ -450,16 +440,16 @@ const testCode = `
   __results.seedStored = gameState.seed === '0xDEADBEEF';
   __results.seedShown = !seedBarEl.hidden && seedValueEl.textContent === '0xDEADBEEF';
   __results.seedPuzzleMatches = JSON.stringify(gameState.puzzle) === JSON.stringify(generateSeededGame('0xDEADBEEF', 9, 3, 3, 'medium').puzzle);
+  // Uniform pastel mask for the start numbers: a fixed (given) cell carries an hsl() tint
+  const fixedGiven = Array.from(boardEl.children).find(c => c.classList.contains('fixed'));
+  __results.fixedRainbow = !!fixedGiven && fixedGiven.style.background.startsWith('hsl('); // expect true
 
   // TEST O: special-piece pity - guaranteed special within N pieces.
   // O1: at the pity cap (19 non-specials for medium/20) the next piece is guaranteed special.
   setup('classic-9', 'medium');
   gameState.difficulty = 'medium';
   gameState.lives = 3;
-  gameState.strikes = 0;
   gameState.hints = 0;
-  gameState.shieldActive = false;
-  gameState.warns = gameState.board.map(r => r.map(() => null));
   gameState.sinceSpecial = 19;
   nextPiece();
   __results.pityGuaranteed = isSpecialPiece(gameState.currentPiece); // expect true
@@ -496,6 +486,37 @@ const testCode = `
     __results.specialInfoShown &&
     __results.specialInfoName === SPECIAL_PIECES[pickedSpecial.key].label &&
     __results.specialInfoDesc === SPECIAL_PIECES[pickedSpecial.key].desc;
+
+  // TEST Q: the board intro animation staggers cells in via requestAnimationFrame.
+  gameState.mode = GAME_MODES['classic-9'];
+  gameState.solution = generateSolution(9, 3, 3);
+  gameState.puzzle = gameState.solution.map(r => r.map(() => null));
+  gameState.board = gameState.puzzle.map(r => [...r]);
+  gameState.gameActive = true;
+  gameState.lives = 3;
+  gameState.errors = 0;
+  gameState.hints = 0;
+  renderBoard();
+  __frames.length = 0;
+  __clock = 0;
+  animateBoardIn();
+  __results.introFramesScheduled = __frames.length; // expect 1
+  const introFirst = boardEl.children[0];
+  const introLast = boardEl.children[boardEl.children.length - 1];
+  // Run the first frame at t=0: every cell is hidden (stagger has not started)
+  __frames.shift()();
+  __results.introCellHiddenAtStart = introFirst.style.opacity === '0'; // expect true
+  __clock = 900; // mid-wave: first cell should be visible, last cell still hidden
+  __frames.shift()();
+  __results.introFirstVisibleMidWave = introFirst.style.opacity !== '0'; // expect true
+  __results.introLastHiddenMidWave = introLast.style.opacity === '0'; // expect true (staggered)
+  let introGuard = 0;
+  while (__frames.length && introGuard++ < 500) {
+    __clock += 100;
+    __frames.shift()();
+  }
+  __results.introAllVisible =
+    introFirst.style.opacity === '1' && introLast.style.opacity === '1' && introGuard > 0; // expect true
 })();
 `;
 
@@ -508,7 +529,7 @@ console.log('  # games where handed piece had NO legal spot: ' + r.optimalUnplac
 console.log('  # games completed to full board: ' + r.optimalCompleted);
 console.log('');
 console.log('TEST B (wrong placement rejected):');
-console.log('  rejected: ' + r.wrongRejected + ', strikes: ' + r.wrongStrikes + ', lives: ' + r.wrongLives);
+console.log('  rejected: ' + r.wrongRejected + ', lives: ' + r.wrongLives + ', errors: ' + r.wrongErrors + ', no colored mark: ' + r.wrongNoWarn);
 console.log('');
 console.log('TEST C (all modes) - solution validity + a starting move available:');
 console.log('  generations checked: ' + r.allModeCount + ', valid solutions: ' + r.allModeValid + ', with a starting move: ' + r.allModeStartMoves);
@@ -517,12 +538,10 @@ console.log('TEST D (win modal):');
 console.log('  modal shown: ' + r.modalShown + ', time: ' + r.modalTime + ', lives: ' + r.modalLives + ', errors: ' + r.modalErrors + ', title: ' + r.modalTitle);
 console.log('TEST E (game-over modal):');
 console.log('  modal shown: ' + r.loseShown + ', title: ' + r.loseTitle);
-console.log('TEST F (hard lives):');
+console.log('TEST F (every wrong move costs a life):');
 console.log('  lives after 1 wrong: ' + r.hardLivesAfter1 + ', after 3 wrong: ' + r.hardLivesAfter3 + ', game over: ' + r.hardGameOver);
-console.log('TEST G (persistent warn marks):');
-console.log('  stored: ' + r.warnStored + ', class after click: ' + r.warnClassAfterClick + ', kept after re-render: ' + r.warnAfterRender);
-console.log('TEST H (marks clear on life loss):');
-console.log('  warn before life loss: ' + r.warnBeforeLifeLoss + ', after: ' + r.warnAfterLifeLoss + ', lives after: ' + r.livesAfterLifeLoss + ', cell white again: ' + r.cellWhiteAfterLifeLoss);
+console.log('TEST G (no colored marks on wrong moves):');
+console.log('  mark after click: ' + r.warnAfterClick + ', after re-render: ' + r.warnAfterRender + ', lives: ' + r.warnLives);
 console.log('TEST I (per-piece timer):');
 console.log('  classic pieceSeconds: ' + r.pieceSecondsClassic + ', shown: ' + r.pieceTimerShownClassic + ', lives after time-up: ' + r.livesAfterTimeUp + ', timer restarted: ' + r.pieceTimeLeftAfter + ', gameActive: ' + r.gameActiveAfter);
 console.log('  kids pieceSeconds: ' + r.pieceSecondsKids + ', shown: ' + r.pieceTimerShownKids);
@@ -537,12 +556,17 @@ console.log('TEST L (random cat logo):');
 console.log('  invariants ok (valid cat + matching name over 30 runs): ' + r.logoOk);
 console.log('TEST M (special pieces):');
 console.log('  pick ok: ' + r.specialPickOk + ', special rolled (forced): ' + r.specialRolled + ', key: ' + r.specialKey);
-console.log('  joker fills correct: ' + r.jokerFilled + ', reveal class: ' + r.revealClass + ', reveal text: ' + r.revealText + ', reverted: ' + r.revealReverted);
-console.log('  shield lives: ' + r.shieldLives + ', errors: ' + r.shieldErrors + ', hints after grant: ' + r.hintsAfter + ', after use: ' + r.hintsAfterUse);
+console.log('  joker fills correct: ' + r.jokerFilled + ', reveal class: ' + r.revealClass + ', radius-2 class: ' + r.revealClass2 + ', fade class: ' + r.revealFade + ', rainbow tint: ' + r.revealRainbow + ', reverted: ' + r.revealReverted + ', style cleared: ' + r.revealCleared);
+console.log('  loki lives after auto-resolve: ' + r.shieldLives + ', auto click ignored: ' + r.autoClickIgnored);
+console.log('  daya bad-luck seconds: ' + r.badLuckLeft + ', click ignored: ' + r.dayaClickIgnored);
+console.log('  bad-luck tick: ' + r.badLuckTick + ' (expect 96), normal tick: ' + r.normalTick + ' (expect 99), bad-luck left: ' + r.badLuckRemaining);
 console.log('TEST N (seeds):');
 console.log('  determinism (same seed -> same puzzle): ' + r.seedDeterminism + ', different seed differs: ' + r.seedDiffers);
 console.log('  seed stored: ' + r.seedStored + ', shown: ' + r.seedShown + ', puzzle matches seed: ' + r.seedPuzzleMatches);
+console.log('  fixed start numbers pastel mask: ' + r.fixedRainbow);
 console.log('TEST O (special pity):');
 console.log('  guaranteed at cap: ' + r.pityGuaranteed + ', counter reset: ' + r.pityReset + ', max gap (easy, 500 pieces): ' + r.maxGapEasy);
 console.log('TEST P (special piece info):');
 console.log('  shown: ' + r.specialInfoShown + ', name: ' + r.specialInfoName + ', desc: ' + r.specialInfoDesc + ', ok: ' + r.specialInfoOk);
+console.log('TEST Q (board intro animation):');
+console.log('  frames scheduled: ' + r.introFramesScheduled + ', hidden at start: ' + r.introCellHiddenAtStart + ', first visible mid-wave: ' + r.introFirstVisibleMidWave + ', last hidden mid-wave: ' + r.introLastHiddenMidWave + ', all visible at end: ' + r.introAllVisible);

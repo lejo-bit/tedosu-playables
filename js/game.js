@@ -37,11 +37,12 @@ function startNewGame(opts = {}) {
   // Reset state
   const rules = DIFFICULTY_RULES[gameState.difficulty] || DIFFICULTY_RULES.easy;
   gameState.lives = rules.lives;
-  gameState.strikes = 0;
   gameState.sinceSpecial = 0;
-  gameState.warns = gameState.board.map(row => row.map(() => null));
   gameState.errors = 0;
   gameState.timer = 0;
+  gameState.hints = 0;
+  gameState.badLuckLeft = 0;
+  stopAutoPieceTimer();
   gameState.gameActive = true;
 
   // Update header
@@ -58,13 +59,17 @@ function startNewGame(opts = {}) {
   nextPiece();
   showMessage('Game started! Place the current piece.', 'info');
   showScreen('game');
+  animateBoardIn(); // board cells appear staggered (zoom-in) once visible
 
-  // Start the overall game timer
+  // Start the overall game timer, paused while the intro animation plays so
+  // the clock doesn't tick before the board appears.
   if (gameState.timed) {
-    gameState.timerInterval = setInterval(() => {
-      gameState.timer++;
-      updateTimer();
-    }, 1000);
+    gameState.timerInterval = setTimeout(() => {
+      gameState.timerInterval = setInterval(() => {
+        gameState.timer++;
+        updateTimer();
+      }, 1000);
+    }, 1600);
   }
 }
 
@@ -108,10 +113,15 @@ function pickSpecialPiece() {
   let roll = Math.random() * totalWeight;
   for (const [key, piece] of entries) {
     roll -= piece.weight;
-    if (roll <= 0) return { key, file: piece.file, label: piece.label, desc: piece.desc };
+    if (roll <= 0) return { key, file: piece.file, label: piece.label, desc: piece.desc, kind: piece.kind };
   }
   const last = entries[entries.length - 1];
-  return { key: last[0], file: last[1].file, label: last[1].label, desc: last[1].desc };
+  return { key: last[0], file: last[1].file, label: last[1].label, desc: last[1].desc, kind: last[1].kind };
+}
+
+// Counts the empty (null) cells in a grid.
+function countEmpty(grid) {
+  return grid.reduce((sum, row) => sum + row.filter(v => v === null).length, 0);
 }
 
 // Deals the next piece (a special cat, or a normal always-placeable value)
@@ -120,18 +130,31 @@ function nextPiece() {
   const rules = DIFFICULTY_RULES[gameState.difficulty] || DIFFICULTY_RULES.easy;
   const isKids = gameState.mode.type === 'icons';
 
-  // Special cat pieces (9x9 / 16x16 only) use a pity system: the chance rises
-  // after every non-special piece and is guaranteed at the pity cap.
+  // Special cat pieces (9x9 / 16x16 only). The odds start at the difficulty's
+  // base chance and shrink as the board fills up, reaching 0% when only 10
+  // empty cells remain. A pity system keeps the early game fair (the chance
+  // rises after every non-special piece), but the whole roll is scaled by the
+  // gap factor so the 0%-at-10-gaps rule always wins.
   const baseChance = rules.specialChance || 0;
   if (!isKids && baseChance > 0) {
+    const startGaps = countEmpty(gameState.puzzle);
+    const gaps = countEmpty(gameState.board);
+    const gapFactor = startGaps > 10
+      ? Math.max(0, Math.min(1, (gaps - 10) / (startGaps - 10)))
+      : 0;
     const pity = rules.specialPity || 1;
     const pityStep = Math.max(1, pity - 1);
-    const chance = Math.min(1, baseChance + (1 - baseChance) * (gameState.sinceSpecial / pityStep));
+    const chance = gapFactor * Math.min(1, baseChance + (1 - baseChance) * (gameState.sinceSpecial / pityStep));
     if (Math.random() < chance) {
       gameState.sinceSpecial = 0;
-      gameState.currentPiece = pickSpecialPiece();
+      const piece = pickSpecialPiece();
+      gameState.currentPiece = piece;
       renderCurrentPiece();
-      startPieceTimer();
+      if (piece.kind === 'auto') {
+        startAutoPieceTimer(piece);
+      } else {
+        startPieceTimer();
+      }
       return;
     }
     gameState.sinceSpecial++;
@@ -156,6 +179,8 @@ function handleCellClick(row, col) {
 
   // Special cat piece? Route to its effect.
   if (isSpecialPiece(currentPiece)) {
+    // Auto pieces (Loki / Daya) resolve on their own - clicks are ignored.
+    if (currentPiece.kind === 'auto') return;
     applySpecialPiece(currentPiece, row, col);
     return;
   }
@@ -167,8 +192,6 @@ function handleCellClick(row, col) {
     // Correct placement (matches the puzzle's solution). The board is always
     // a subset of the solution, so the game can never dead-end.
     gameState.board[row][col] = value;
-    gameState.strikes = 0; // reset mistake escalation after a correct move
-    if (gameState.warns[row]) gameState.warns[row][col] = null; // correct fill clears the mark
     renderBoard();
     updateInfo();
 
@@ -179,94 +202,76 @@ function handleCellClick(row, col) {
       nextPiece();
     }
   } else {
-    // Wrong cell for this piece
-    if (gameState.shieldActive) {
-      // Shield active: mistakes are free - no punishment
-      showMessage('Shield active - mistakes are not punished!', 'info');
-      return;
-    }
+    // Wrong cell for this piece: every wrong move costs one life.
     gameState.errors++;
-    const rules = DIFFICULTY_RULES[gameState.difficulty] || DIFFICULTY_RULES.easy;
-    gameState.strikes++;
     updateInfo();
-
-    // Persist the escalation color on the clicked cell (cleared on fill, life loss, or new game)
-    const tierIndex = Math.min(gameState.strikes - 1, rules.warnKeys.length - 1);
-    const warnKey = rules.warnKeys[tierIndex] || 'red';
-    if (gameState.warns[row]) gameState.warns[row][col] = warnKey;
-    const cellIndex = row * gameState.mode.size + col;
-    const cell = boardEl.children[cellIndex];
-    cell.classList.remove('cell-warn-yellow', 'cell-warn-orange', 'cell-warn-red');
-    cell.classList.add(`cell-warn-${warnKey}`);
-
-    if (gameState.strikes >= rules.lifeLostAt) {
-      if (loseLife('Mistake!')) return; // game over - out of lives
-    } else {
-      showMessage('Invalid move! Try again.', 'error');
-    }
+    if (loseLife('Mistake!')) return; // game over - out of lives
   }
 }
 
 // Applies a special cat piece effect at the clicked cell, then deals a new piece.
 function applySpecialPiece(piece, row, col) {
   switch (piece.key) {
-    case 'joker':
+    case 'joker': {
       // Joker fills the cell with its correct value (acts as any number).
       gameState.board[row][col] = gameState.solution[row][col];
-      gameState.strikes = 0;
-      if (gameState.warns[row]) gameState.warns[row][col] = null;
       renderBoard();
       updateInfo();
+      // Wave ripple effect around the filled cell.
+      const cellEl = boardEl.children[row * gameState.mode.size + col];
+      if (cellEl) {
+        cellEl.classList.add('cell-wave');
+        setTimeout(() => cellEl.classList.remove('cell-wave'), 750);
+      }
       if (checkWin()) {
         endGame(true);
         return;
       }
       showMessage('Joker: Placed the correct number.', 'success');
       break;
+    }
 
     case 'reveal':
       revealNeighbors(row, col);
-      showMessage('Spy: Numbers shown for 1 second.', 'info');
-      break;
-
-    case 'shield':
-      gameState.shieldActive = true;
-      showMessage('Shield active: no mistakes on this field for the rest of the game!', 'success');
-      break;
-
-    case 'hints':
-      gameState.hints += 2;
-      updateHintsPill();
-      updateControls();
-      showMessage('You gained 2 hints!', 'success');
+      showMessage('Spy: Fields shown for 5 seconds.', 'info');
       break;
   }
   nextPiece();
 }
 
-// Flashes the correct values of the 8 cells surrounding (row, col) for 1 second.
+// Flashes the clicked cell and every cell within 2 fields of it. Each cell is
+// tinted a light pastel-rainbow hue (radiating from the click), stays fully
+// visible for 1 second, then slowly fades out over the next 4 seconds.
 function revealNeighbors(row, col) {
   const size = gameState.mode.size;
   const revealed = [];
-  for (let r = row - 1; r <= row + 1; r++) {
-    for (let c = col - 1; c <= col + 1; c++) {
-      if (r === row && c === col) continue; // skip the anchor cell
+  for (let r = row - 2; r <= row + 2; r++) {
+    for (let c = col - 2; c <= col + 2; c++) {
       if (r < 0 || r >= size || c < 0 || c >= size) continue;
       if (gameState.board[r][c] !== null) continue; // already filled
       const cell = boardEl.children[r * size + c];
       if (!cell) continue;
+      // Pastel rainbow: hue comes from the angle + distance around the click
+      const dr = r - row, dc = c - col;
+      const angle = Math.atan2(dr, dc);
+      const dist = Math.sqrt(dr * dr + dc * dc);
+      const hue = Math.round((((angle + Math.PI) / (Math.PI * 2)) * 360 + dist * 55) % 360);
       cell.textContent = getValueDisplay(gameState.solution[r][c]);
-      cell.classList.add('reveal');
+      cell.style.background = `hsl(${hue}, 80%, 88%)`; // light pastel fill
+      cell.style.color = `hsl(${hue}, 65%, 40%)`;      // matching darker number
+      cell.classList.add('reveal', 'reveal-fade');
       revealed.push({ cell, row: r, col: c });
     }
   }
-  // Revert the reveal after 1 second
+  // Revert after 5.2s (held for 1s, faded to 0 by 5s).
   setTimeout(() => {
     for (const { cell, row: rr, col: cc } of revealed) {
-      cell.classList.remove('reveal');
+      cell.classList.remove('reveal', 'reveal-fade');
+      cell.style.background = '';
+      cell.style.color = '';
       if (gameState.board[rr][cc] === null) cell.textContent = '';
     }
-  }, 1000);
+  }, 5200);
 }
 
 // Checks whether the whole board is a valid Sudoku (rows, columns, boxes).
@@ -323,6 +328,9 @@ function endGame(won) {
     clearInterval(gameState.timerInterval);
   }
   stopPieceTimer();
+  stopAutoPieceTimer();
+  gameState.badLuckLeft = 0;
+  pieceTimerWrapEl.classList.remove('crazy', 'urgent');
 
   winTimeEl.textContent = formatTime(gameState.timer);
   winLivesEl.textContent = renderHearts(gameState.lives);
@@ -333,13 +341,19 @@ function endGame(won) {
     winMessageEl.classList.remove('danger');
     let bestNote = '';
     if (gameState.timed) {
-      const key = `best_${gameModeSelect.value}`;
-      const best = localStorage.getItem(key);
-      if (!best || gameState.timer < parseInt(best)) {
-        localStorage.setItem(key, gameState.timer.toString());
-        bestNote = 'New best time!';
-      } else {
-        bestNote = `Best: ${formatTime(parseInt(best))}`;
+      // Best-time tracking. localStorage may be unavailable on file:// URLs
+      // (some browsers throw), so it is guarded and never breaks the modal.
+      try {
+        const key = `best_${gameModeSelect.value}`;
+        const best = localStorage.getItem(key);
+        if (!best || gameState.timer < parseInt(best)) {
+          localStorage.setItem(key, gameState.timer.toString());
+          bestNote = 'New best time!';
+        } else {
+          bestNote = `Best: ${formatTime(parseInt(best))}`;
+        }
+      } catch (e) {
+        bestNote = '';
       }
     }
     winMessageEl.textContent = bestNote;
@@ -402,17 +416,10 @@ function showHint() {
   }
 }
 
-// Loses one heart. Clears all warning marks (board goes white again) and
-// ends the game when the last heart is gone. Returns true if game over.
+// Loses one heart and ends the game when the last heart is gone.
+// Returns true if game over.
 function loseLife(reason) {
-  gameState.strikes = 0;
   gameState.lives--;
-  // Clear all warning marks so the board goes back to white
-  for (let r = 0; r < gameState.mode.size; r++) {
-    for (let c = 0; c < gameState.mode.size; c++) {
-      if (gameState.warns[r]) gameState.warns[r][c] = null;
-    }
-  }
   renderBoard();
   updateInfo();
   if (gameState.lives <= 0) {
@@ -426,14 +433,18 @@ function loseLife(reason) {
 // --- Per-piece countdown timer (9x9 / 16x16 only) ---------------------
 
 // Refreshes the countdown pill; hides it when there is no per-piece timer.
+// Under Daya's bad luck the pill shows a ×4 badge and the "crazy" shake.
 function updatePieceTimer() {
   const active = gameState.mode && gameState.mode.type !== 'icons' && gameState.gameActive && gameState.pieceSeconds > 0;
   if (active) {
     pieceTimerWrapEl.hidden = false;
-    pieceTimerValueEl.textContent = formatTime(gameState.pieceTimeLeft);
-    pieceTimerWrapEl.classList.toggle('urgent', gameState.pieceTimeLeft <= 10);
+    const crazy = gameState.badLuckLeft > 0;
+    pieceTimerValueEl.textContent = formatTime(gameState.pieceTimeLeft) + (crazy ? ' ×4' : '');
+    pieceTimerWrapEl.classList.toggle('crazy', crazy);
+    pieceTimerWrapEl.classList.toggle('urgent', gameState.pieceTimeLeft <= 10 && !crazy);
   } else {
     pieceTimerWrapEl.hidden = true;
+    pieceTimerWrapEl.classList.remove('crazy', 'urgent');
   }
 }
 
@@ -441,20 +452,27 @@ function updatePieceTimer() {
 function startPieceTimer() {
   stopPieceTimer();
   const rules = DIFFICULTY_RULES[gameState.difficulty] || DIFFICULTY_RULES.easy;
-  // Kids mode has no per-piece timer - only 9x9 and 16x16
+  // Kids mode has no per-piece timer; 9x9 and 16x16 each have their own seconds
   const hasTimer = gameState.mode && gameState.mode.type !== 'icons';
-  gameState.pieceSeconds = hasTimer ? (rules.pieceSeconds || 0) : 0;
+  const modeSeconds = (hasTimer && rules.pieceSeconds) ? (rules.pieceSeconds[gameState.mode.key] || 0) : 0;
+  gameState.pieceSeconds = modeSeconds;
   gameState.pieceTimeLeft = gameState.pieceSeconds;
   updatePieceTimer();
   if (gameState.pieceSeconds <= 0) return;
-  gameState.pieceTimerInterval = setInterval(() => {
-    gameState.pieceTimeLeft--;
-    updatePieceTimer();
-    if (gameState.pieceTimeLeft <= 0) {
-      stopPieceTimer();
-      onPieceTimerExpired();
-    }
-  }, 1000);
+  gameState.pieceTimerInterval = setInterval(pieceTimerTick, 1000);
+}
+
+// One second of the per-piece countdown. While Daya's bad luck is active the
+// timer ticks 4x faster for 60 real seconds.
+function pieceTimerTick() {
+  const crazy = gameState.badLuckLeft > 0;
+  gameState.pieceTimeLeft -= crazy ? 4 : 1;
+  if (crazy) gameState.badLuckLeft--;
+  updatePieceTimer();
+  if (gameState.pieceTimeLeft <= 0) {
+    stopPieceTimer();
+    onPieceTimerExpired();
+  }
 }
 
 // Stops the per-piece countdown (if any).
@@ -470,5 +488,45 @@ function onPieceTimerExpired() {
   if (!gameState.gameActive) return;
   if (loseLife("Time's up!")) return; // game over - out of lives
   nextPiece(); // a fresh piece restarts the timer
+}
+
+// --- Auto-resolving special pieces (Loki / Daya) -----------------------
+
+// Auto pieces resolve on their own 3 seconds after being dealt - no click.
+function startAutoPieceTimer(piece) {
+  stopPieceTimer(); // no normal countdown while an auto piece is showing
+  gameState.pieceSeconds = 0;
+  updatePieceTimer(); // hides the countdown pill
+  stopAutoPieceTimer();
+  gameState.autoPieceTimeout = setTimeout(() => {
+    if (!gameState.gameActive) return;
+    applyAutoPiece(piece);
+  }, 3000);
+}
+
+// Cancels a pending auto-resolve (new game, menu, game over).
+function stopAutoPieceTimer() {
+  if (gameState.autoPieceTimeout) {
+    clearTimeout(gameState.autoPieceTimeout);
+    gameState.autoPieceTimeout = null;
+  }
+}
+
+// Applies the effect of an auto piece, then deals the next piece.
+function applyAutoPiece(piece) {
+  if (piece.key === 'shield') {
+    // Loki - Extra life!
+    gameState.lives++;
+    updateInfo();
+    spawnHeartPop();
+    livesEl.classList.add('lives-pop');
+    setTimeout(() => livesEl.classList.remove('lives-pop'), 750);
+    showMessage('Extra life! +1 heart ❤️', 'success');
+  } else if (piece.key === 'hints') {
+    // Daya - Bad luck: the piece timer runs 4x faster for 60 seconds.
+    gameState.badLuckLeft = 60;
+    showMessage('Bad luck! The timer runs 4x faster for 60 seconds!', 'error');
+  }
+  nextPiece();
 }
 

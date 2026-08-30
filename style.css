@@ -33,7 +33,7 @@ body {
   font-family: 'Outfit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, var(--bg-1), var(--bg-2), var(--bg-3));
   min-height: 100vh;
-  padding: 24px 16px;
+  padding: 14px 12px;
   color: var(--text);
   overflow-x: hidden;
 }
@@ -70,7 +70,7 @@ body {
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid var(--glass-border);
   border-radius: 28px;
-  padding: 32px 30px;
+  padding: 22px 24px;
   box-shadow: 0 25px 80px rgba(50, 50, 93, 0.16);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -254,10 +254,10 @@ body {
 
 /* Seed display bar (game screen) */
 .seed-bar {
-  margin: 0 0 14px;
-  padding: 6px 12px;
+  margin: 0 0 8px;
+  padding: 5px 10px;
   text-align: center;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
@@ -322,7 +322,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .game-title {
@@ -346,22 +346,25 @@ body {
   border-radius: 999px;
 }
 
-/* Stats */
+/* Stats + current piece in one compact row: lives | piece | timer */
 .game-info {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 18px;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .stat {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
   background: var(--glass);
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  border-radius: 14px;
+  text-align: center;
 }
 
 .stat-icon { font-size: 1.35rem; }
@@ -381,23 +384,30 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Current piece */
-.current-piece { text-align: center; margin-bottom: 16px; }
+/* Current piece (middle column of the stats row) */
+.current-piece {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  text-align: center;
+}
 
 .piece-label {
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 2.2px;
+  letter-spacing: 1.6px;
   color: var(--text-dim);
 }
 
 .piece-timer {
-  margin-top: 10px;
+  margin-top: 2px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 1.05rem;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: 0.8rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text);
@@ -408,13 +418,29 @@ body {
 
 .piece-timer.urgent { color: #c12c50; background: rgba(255, 82, 112, 0.14); border-color: rgba(255, 82, 112, 0.4); }
 
+/* Daya (4.png): the piece timer "goes crazy" while bad luck is active */
+.piece-timer.crazy {
+  color: #fff;
+  background: linear-gradient(135deg, #ff5f6d, #ffb347);
+  border-color: rgba(255, 95, 109, 0.65);
+  box-shadow: 0 0 16px rgba(255, 95, 109, 0.6);
+  animation: timerCrazy 0.45s linear infinite;
+}
+
+@keyframes timerCrazy {
+  0%, 100% { transform: rotate(-3deg) scale(1); }
+  25% { transform: rotate(2deg) scale(1.1); }
+  50% { transform: rotate(-2deg) scale(0.94); }
+  75% { transform: rotate(3deg) scale(1.08); }
+}
+
 .hints-pill {
-  margin-top: 10px;
+  margin-top: 2px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 0.95rem;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text);
   background: rgba(255, 255, 255, 0.6);
@@ -424,9 +450,9 @@ body {
 
 /* Special piece name + description under the piece tray */
 .special-piece-info {
-  margin-top: 10px;
-  font-size: 0.88rem;
-  line-height: 1.4;
+  margin-top: 2px;
+  font-size: 0.74rem;
+  line-height: 1.3;
   color: var(--text);
 }
 
@@ -435,22 +461,60 @@ body {
 .special-piece-desc { color: var(--text-dim); }
 
 .piece-display {
-  width: 106px;
-  height: 106px;
-  margin: 10px auto 0;
+  position: relative;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  border-radius: 20px;
+  border-radius: 14px;
   color: var(--text);
   background: linear-gradient(135deg, rgba(102, 83, 230, 0.16), rgba(10, 166, 198, 0.12));
   border: 1px solid rgba(28, 27, 46, 0.12);
-  box-shadow: 0 10px 30px rgba(102, 83, 230, 0.18), inset 0 0 24px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 6px 18px rgba(102, 83, 230, 0.18), inset 0 0 14px rgba(255, 255, 255, 0.6);
 }
 
 .piece-display.pop { animation: piecePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Auto pieces (Loki / Daya) zoom in over their 3s auto-resolve window */
+.piece-display.zoom-in {
+  animation: autoPieceZoom 3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes autoPieceZoom {
+  0% { transform: scale(0.3); opacity: 0; }
+  18% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Loki (3.png): floating heart when an extra life is granted */
+.heart-float {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2.1rem;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 5;
+  animation: heartFloat 1.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes heartFloat {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.4); }
+  25% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.3); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-66px) scale(1); }
+}
+
+.lives-pop { animation: livesPop 0.7s ease-out; }
+
+@keyframes livesPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
 
 .piece-icon {
   width: 78%;
@@ -460,11 +524,11 @@ body {
   box-shadow: 0 2px 6px rgba(50, 50, 93, 0.22);
 }
 
-/* Larger current-piece preview (kids / icon modes) */
+/* Slightly larger current-piece preview (kids / icon modes) */
 .piece-display--large {
-  width: clamp(259px, 58vmin, 461px);
-  height: clamp(259px, 58vmin, 461px);
-  border-radius: 24px;
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
 }
 
 .piece-display--large .piece-icon {
@@ -490,6 +554,7 @@ body {
 }
 
 .cell {
+  position: relative;
   aspect-ratio: 1;
   display: flex;
   align-items: center;
@@ -505,7 +570,7 @@ body {
 
 .cell:hover { background: rgba(102, 83, 230, 0.1); }
 
-.cell.fixed { background: rgba(28, 27, 46, 0.07); color: rgba(28, 27, 46, 0.7); cursor: default; }
+.cell.fixed { cursor: default; font-weight: 700; }
 
 .cell.filled { background: rgba(10, 166, 198, 0.12); color: #0a7d99; }
 
@@ -513,15 +578,37 @@ body {
 
 .cell.error { background: rgba(255, 82, 112, 0.3); color: #c12c50; animation: shake 0.4s; }
 
-.cell-warn-yellow { background: #fff2b8; color: #7a5c00; animation: shake 0.4s; }
-.cell-warn-orange { background: #ffd9ab; color: #86400a; animation: shake 0.4s; }
-.cell-warn-red { background: #ffc3cb; color: #a12848; animation: shake 0.4s; }
-
-/* Reveal (2.png): briefly shows the correct values of surrounding cells */
+/* Reveal (2.png): cells get an inline pastel-rainbow tint from revealNeighbors;
+   this class only bolds the number and drives the fade-out */
 .cell.reveal {
-  background: rgba(10, 166, 198, 0.35);
-  color: #0a7d99;
   font-weight: 700;
+}
+
+.cell.reveal-fade {
+  animation: revealFade 5s ease-in-out forwards;
+}
+
+@keyframes revealFade {
+  0%, 20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Joker (1.png): expanding ripple around the cell when it is filled */
+.cell.cell-wave::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  border: 3px solid var(--accent-2);
+  box-shadow: 0 0 14px rgba(10, 166, 198, 0.8), inset 0 0 12px rgba(10, 166, 198, 0.45);
+  animation: cellWave 0.7s ease-out forwards;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes cellWave {
+  0% { transform: scale(0.7); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 
 .cell-icon {
@@ -552,17 +639,17 @@ body {
   display: flex;
   justify-content: center;
   gap: 14px;
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 /* Message */
 .message {
-  margin-top: 18px;
-  padding: 14px 18px;
-  min-height: 50px;
-  border-radius: 14px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  min-height: 0;
+  border-radius: 12px;
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -645,12 +732,14 @@ body {
   .settings-card { grid-template-columns: 1fr; }
   .game-header { flex-wrap: wrap; justify-content: center; gap: 8px; }
 
-  /* Compact 3-column stats instead of a tall stacked list */
-  .game-info { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .stat { flex-direction: column; text-align: center; gap: 4px; padding: 10px 6px; }
-  .stat-icon { font-size: 1.15rem; }
-  .stat-label { font-size: 0.6rem; letter-spacing: 1px; }
-  .stat-value { font-size: 1rem; }
+  /* Compact 3-column stats row: lives | current piece | timer */
+  .game-info { grid-template-columns: 1fr 1.3fr 1fr; gap: 6px; }
+  .stat { flex-direction: column; text-align: center; gap: 3px; padding: 8px 6px; }
+  .stat-icon { font-size: 1.05rem; }
+  .stat-label { font-size: 0.58rem; letter-spacing: 1px; }
+  .stat-value { font-size: 0.95rem; }
+  .piece-display { width: 46px; height: 46px; font-size: 1.1rem; border-radius: 12px; }
+  .piece-display--large { width: 54px; height: 54px; }
 
   /* Give board cells more room */
   .board { gap: 1px; padding: 4px; }

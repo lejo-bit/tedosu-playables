@@ -15,7 +15,10 @@ function goToMenu() {
     gameState.timerInterval = null;
   }
   stopPieceTimer();
+  stopAutoPieceTimer();
+  gameState.badLuckLeft = 0;
   pieceTimerWrapEl.hidden = true;
+  pieceTimerWrapEl.classList.remove('crazy', 'urgent');
   seedBarEl.hidden = true;
   gameState.gameActive = false;
   winModal.hidden = true;
@@ -24,15 +27,13 @@ function goToMenu() {
   currentPieceDisplay.textContent = '-';
   currentPieceDisplay.classList.remove('piece-display--large');
   timerEl.textContent = '00:00';
-  errorCountEl.textContent = '0';
   clearMessage();
   messageEl.textContent = '';
   messageEl.className = 'message';
   showScreen('start');
 }
 
-// Draws the board (fixed cells, filled cells, and empty clickable cells),
-// re-applying any persistent wrong-click warning marks.
+// Draws the board (fixed cells, filled cells, and empty clickable cells).
 function renderBoard() {
   boardEl.innerHTML = '';
   const size = gameState.mode.size;
@@ -60,6 +61,10 @@ function renderBoard() {
 
       if (gameState.puzzle[row][col] !== null) {
         cell.classList.add('fixed');
+        // Uniform pastel "mask" for the pre-filled start numbers: all givens
+        // share the same soft lavender tint so they read as one constant block
+        cell.style.color = 'hsl(248, 55%, 42%)';
+        cell.style.background = 'hsl(248, 50%, 92%)';
         cell.appendChild(createValueNode(value));
       } else if (value !== null) {
         cell.classList.add('filled');
@@ -69,13 +74,73 @@ function renderBoard() {
         cell.addEventListener('click', () => handleCellClick(row, col));
       }
 
-      // Re-apply any persistent wrong-click warning mark
-      const warn = gameState.warns && gameState.warns[row] && gameState.warns[row][col];
-      if (warn) cell.classList.add(`cell-warn-${warn}`);
-
       boardEl.appendChild(cell);
     }
   }
+}
+
+// Game-start entrance: the board cells appear staggered with a zoom-in pop.
+// Driven by requestAnimationFrame (setting inline opacity/transform), so it
+// runs in every browser regardless of CSS animation quirks or reduced-motion.
+function animateBoardIn() {
+  const cells = Array.from(boardEl.children);
+  const total = cells.length || 1;
+  const perCell = 500;            // ms for each cell to pop in
+  const stagger = 1600 / total;   // ms between consecutive cells
+  const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  const start = now();
+
+  // Disable CSS transitions during the intro so every rAF step applies instantly
+  cells.forEach((c) => { if (c) c.style.transition = 'none'; });
+
+  const finish = () => {
+    cells.forEach((c) => {
+      if (!c) return;
+      c.style.opacity = '1';
+      c.style.transform = 'scale(1)';
+      c.style.transition = ''; // restore the normal hover transition
+    });
+  };
+
+  const step = () => {
+    const elapsed = now() - start;
+    let done = true;
+    for (let i = 0; i < total; i++) {
+      const cell = cells[i];
+      if (!cell) continue;
+      const t = (elapsed - i * stagger) / perCell; // 0..1 progress for this cell
+      if (t >= 1) {
+        cell.style.opacity = '1';
+        cell.style.transform = 'scale(1)';
+      } else if (t > 0) {
+        // Ease-out-back: pops from 0.3 up to ~1.08 then settles at 1
+        const u = Math.min(1, t);
+        const c1 = 1.70158;
+        const e = 1 + (c1 + 1) * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2);
+        cell.style.opacity = String(Math.min(1, u * 1.25));
+        cell.style.transform = `scale(${(0.3 + 0.7 * e).toFixed(3)})`;
+        done = false;
+      } else {
+        cell.style.opacity = '0';
+        cell.style.transform = 'scale(0.3)';
+        done = false;
+      }
+    }
+    if (done) { finish(); return; }
+    requestAnimationFrame(step);
+  };
+
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(step);
+  } else {
+    finish(); // no rAF (tests): show the board instantly
+  }
+
+  // Re-trigger the first piece's entrance (it was rendered while hidden)
+  currentPieceDisplay.classList.remove('pop', 'zoom-in');
+  void currentPieceDisplay.offsetWidth;
+  const auto = isSpecialPiece(gameState.currentPiece) && gameState.currentPiece.kind === 'auto';
+  currentPieceDisplay.classList.add(auto ? 'zoom-in' : 'pop');
 }
 
 // Shows the current piece (cat image for Kids/special pieces, text otherwise).
@@ -101,16 +166,30 @@ function renderCurrentPiece() {
   } else {
     specialPieceInfoEl.hidden = true;
   }
-  // Restart the "pop" animation for each new piece
-  currentPieceDisplay.classList.remove('pop');
+  // Restart the entrance animation: auto pieces zoom in, everything else pops
+  currentPieceDisplay.classList.remove('pop', 'zoom-in');
   void currentPieceDisplay.offsetWidth;
-  currentPieceDisplay.classList.add('pop');
+  if (special && gameState.currentPiece.kind === 'auto') {
+    currentPieceDisplay.classList.add('zoom-in');
+  } else {
+    currentPieceDisplay.classList.add('pop');
+  }
 }
 
-// Updates the stats bar: hearts, error counter, hint pill, and timer.
+// Shows a floating heart that pops out of the piece tray (Loki's extra life).
+function spawnHeartPop() {
+  const heart = document.createElement('span');
+  heart.className = 'heart-float';
+  heart.textContent = '❤️';
+  currentPieceDisplay.appendChild(heart);
+  setTimeout(() => {
+    if (heart.parentNode) heart.parentNode.removeChild(heart);
+  }, 1400);
+}
+
+// Updates the stats bar: hearts, hint pill, and timer.
 function updateInfo() {
   livesEl.textContent = renderHearts(gameState.lives);
-  errorCountEl.textContent = gameState.errors;
   updateHintsPill();
   if (gameState.timed) {
     updateTimer();
@@ -194,19 +273,14 @@ function updateDifficultyDescription() {
   const rules = DIFFICULTY_RULES[difficulty] || DIFFICULTY_RULES.easy;
   const lives = `${rules.lives} ${rules.lives === 1 ? 'life' : 'lives'}`;
 
-  let text;
-  if (difficulty === 'easy') {
-    text = `${lives}. Wrong clicks escalate yellow - orange - red, and the 4th wrong click costs a life.`;
-  } else if (difficulty === 'medium') {
-    text = `${lives}. Wrong clicks escalate orange - red, and the 3rd wrong click costs a life.`;
+  let text = `${lives}. Every wrong move costs a life.`;
+  if (isKids) {
+    text += difficulty === 'hard' ? ' No hints.' : ' Free hints.';
   } else {
-    text = isKids
-      ? `${lives}, no hints. Every wrong click costs a life.`
-      : `${lives}. Every wrong click costs a life.`;
-  }
-
-  if (!isKids) {
-    text += ` ${rules.pieceSeconds}s per piece. Special pieces: ${Math.round((rules.specialChance || 0) * 100)}% chance.`;
+    const seconds = (rules.pieceSeconds || {})[modeKey] || 0;
+    const pct = (rules.specialChance || 0) * 100;
+    const pctText = Number.isInteger(pct) ? String(pct) : pct.toFixed(1).replace(/\.0$/, '');
+    text += ` ${seconds}s per piece. Special pieces: ${pctText}% chance (fewer as the board fills).`;
   }
 
   difficultyDescriptionEl.textContent = text;

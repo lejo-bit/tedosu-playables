@@ -13,13 +13,12 @@ let gameState = {
   timer: 0,            // elapsed seconds
   timerInterval: null,
   lives: 3,            // hearts remaining
-  strikes: 0,          // consecutive wrong-click warning level
-  warns: [],           // persistent wrong-click marks per cell (tier key or null)
   pieceSeconds: 0,     // per-piece timer limit (0 = no timer, e.g. Kids)
   pieceTimeLeft: 0,    // seconds left for the current piece
   pieceTimerInterval: null,
-  hints: 0,            // hint uses granted by the bonus-hints cat (4.png)
-  shieldActive: false, // true = mistakes are not punished (3.png shield)
+  hints: 0,            // hint uses (Kids Easy hints are free; no piece grants hints anymore)
+  badLuckLeft: 0,      // real seconds left of the 4x-faster piece timer (Daya)
+  autoPieceTimeout: null, // handle for auto-resolving special pieces (Loki / Daya)
   sinceSpecial: 0,     // consecutive non-special pieces dealt (special-piece pity)
   errors: 0,           // total wrong clicks
   gameActive: false

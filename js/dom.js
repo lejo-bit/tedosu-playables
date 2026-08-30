@@ -7,7 +7,6 @@ const boardEl = document.getElementById('board');
 const currentPieceDisplay = document.getElementById('currentPieceDisplay');
 const timerEl = document.getElementById('timer');
 const livesEl = document.getElementById('lives');
-const errorCountEl = document.getElementById('errorCount');
 const pieceTimerWrapEl = document.getElementById('pieceTimerWrap');
 const pieceTimerValueEl = document.getElementById('pieceTimerValue');
 const specialPieceInfoEl = document.getElementById('specialPieceInfo');

@@ -10,7 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="style.css?v=0.6" />
+  <link rel="stylesheet" href="style.css?v=1.3" />
 </head>
 <body>
   <!-- Animated background -->
@@ -26,7 +26,7 @@
       <div class="hero">
         <img id="logo" src="assets/cats/1.png" alt="Sudoku Tetris Logo" class="logo" width="100px" height="100px" />
         <h1 class="title"><span class="gradient-text">Tedosu</span></h1>
-        <p class="tagline">One piece at a time.<br />Fill the grid. Beat the clock.</p>
+        <p class="tagline">One piece at a time.</p>
       </div>
 
       <div class="card settings-card">
@@ -75,39 +75,33 @@
       <div id="seedBar" class="seed-bar" hidden>Seed: <span id="seedValue"></span></div>
 
       <div class="game-info">
-        <div class="stat">
+        <div class="stat stat--lives">
+          <div>
+            <span class="stat-label">Lives</span>
+            <span id="lives" class="stat-value">❤️❤️❤️</span>
+          </div>
+        </div>
+
+        <div class="current-piece">
+          <span class="piece-label">Current Piece</span>
+          <div id="currentPieceDisplay" class="piece-display">-</div>
+          <div id="specialPieceInfo" class="special-piece-info" hidden>
+            <span id="specialPieceName" class="special-piece-name"></span><span id="specialPieceDesc" class="special-piece-desc"></span>
+          </div>
+          <div id="pieceTimerWrap" class="piece-timer" hidden>
+            <span>⏱</span>
+            <span id="pieceTimerValue">--:--</span>
+          </div>
+          <div id="hintsPill" class="hints-pill" hidden>💡 Hints: <span id="hintsCount">0</span></div>
+        </div>
+
+        <div class="stat stat--timer">
           <span class="stat-icon">⏱</span>
           <div>
             <span class="stat-label">Time</span>
             <span id="timer" class="stat-value">00:00</span>
           </div>
         </div>
-        <div class="stat">
-          <div>
-            <span class="stat-label">Lives</span>
-            <span id="lives" class="stat-value">❤️❤️❤️</span>
-          </div>
-        </div>
-        <div class="stat">
-          <span class="stat-icon">⚠️</span>
-          <div>
-            <span class="stat-label">Errors</span>
-            <span id="errorCount" class="stat-value">0</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="current-piece">
-        <span class="piece-label">Current Piece</span>
-        <div id="currentPieceDisplay" class="piece-display">-</div>
-        <div id="specialPieceInfo" class="special-piece-info" hidden>
-          <span id="specialPieceName" class="special-piece-name"></span><span id="specialPieceDesc" class="special-piece-desc"></span>
-        </div>
-        <div id="pieceTimerWrap" class="piece-timer" hidden>
-          <span>⏱</span>
-          <span id="pieceTimerValue">--:--</span>
-        </div>
-        <div id="hintsPill" class="hints-pill" hidden>💡 Hints: <span id="hintsCount">0</span></div>
       </div>
 
       <div id="board" class="board"></div>
@@ -147,12 +141,12 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=0.6"></script>
-  <script src="js/state.js?v=0.6"></script>
-  <script src="js/dom.js?v=0.6"></script>
-  <script src="js/seeded.js?v=0.6"></script>
-  <script src="js/puzzle.js?v=0.6"></script>
-  <script src="js/game.js?v=0.6"></script>
-  <script src="js/ui.js?v=0.6"></script>
+  <script src="js/config.js?v=1.3"></script>
+  <script src="js/state.js?v=1.3"></script>
+  <script src="js/dom.js?v=1.3"></script>
+  <script src="js/seeded.js?v=1.3"></script>
+  <script src="js/puzzle.js?v=1.3"></script>
+  <script src="js/game.js?v=1.3"></script>
+  <script src="js/ui.js?v=1.3"></script>
 </body>
 </html>
