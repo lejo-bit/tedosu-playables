@@ -1,37 +1,45 @@
 // =====================================================================
-// I18N: language switching (English / Deutsch / Polski).
+// I18N: language switching (9 languages: EN/DE/PL/ES/RU/TR/FR/NO/ZH).
 // The translation strings live in js/translations.js (loaded BEFORE this
 // file) - edit that file to add or change translations.
 // =====================================================================
 
-const LANGUAGES = ['en', 'de', 'pl'];
+const LANGUAGES = ['en', 'de', 'pl', 'es', 'ru', 'tr', 'fr', 'no', 'zh'];
 
 // Returns the plural form index for a language + count:
-//   en: 1 -> 0, other -> 1
-//   de: always 0 (Leben is the same in both forms)
-//   pl: 1 -> 0, 2-4 (except 12-14) -> 1, else -> 2
+//   en / es / fr / no: n == 1 -> 0, other -> 1 (no: both forms identical)
+//   de:                0 or 1 (both forms are identical: "Leben")
+//   pl / ru:           n%10 == 1 (except 11) -> 0, n%10 in 2-4 (except 12-14) -> 1, else -> 2
+//   tr / zh:           always 0 (the noun stays singular after a number)
 function pluralIndex(lang, n) {
-  if (lang === 'pl') {
-    if (n === 1) return 0;
-    if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 1;
+  if (lang === 'pl' || lang === 'ru') {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return 0;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 1;
     return 2;
   }
+  if (lang === 'tr' || lang === 'zh') return 0;
   return n === 1 ? 0 : 1;
 }
 
 let currentLang = 'en';
 
-// Flag + native name per language (shown on the language button).
-const LANGUAGE_FLAGS = { en: '🇬🇧', de: '🇩🇪', pl: '🇵🇱' };
-const LANGUAGE_NAMES = { en: 'English', de: 'Deutsch', pl: 'Polski' };
+// Native name per language (used for tooltips / aria labels).
+const LANGUAGE_NAMES = { en: 'English', de: 'Deutsch', pl: 'Polski', es: 'Español', ru: 'Русский', tr: 'Türkçe', fr: 'Français', no: 'Norsk', zh: '中文' };
 
-// Keeps the flag button in sync with the current language.
+// Highlights the matching language button in the settings panel.
 function syncLanguageButton() {
   if (typeof document === 'undefined') return;
-  const btn = document.getElementById('langBtn');
-  if (!btn) return;
-  btn.textContent = LANGUAGE_FLAGS[currentLang] || '🌐';
-  btn.title = LANGUAGE_NAMES[currentLang] || currentLang;
+  for (const lang of LANGUAGES) {
+    const id = 'lang' + lang.charAt(0).toUpperCase() + lang.slice(1); // langEn / langDe / langPl
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    const active = lang === currentLang;
+    btn.classList.toggle('active', active);
+    if (btn.setAttribute) btn.setAttribute('aria-pressed', String(active));
+    btn.title = LANGUAGE_NAMES[lang] || lang;
+  }
 }
 
 // Cycles to the next language (en -> de -> pl -> en).

@@ -126,20 +126,18 @@ function toggleSfx() {
   syncAudioButtons();
 }
 
-// Keeps the two mute buttons in sync with the current state.
+// Keeps the two mute toggle switches in sync with the current state.
 function syncAudioButtons() {
   if (typeof document === 'undefined') return;
-  const mb = document.getElementById('musicBtn');
-  const sb = document.getElementById('sfxBtn');
-  if (mb) {
-    mb.textContent = musicMuted ? '🔇' : '🎵';
-    mb.classList.toggle('muted', musicMuted);
-    mb.title = T('music');
+  const mt = document.getElementById('musicToggle');
+  const st = document.getElementById('sfxToggle');
+  if (mt) {
+    mt.checked = !musicMuted;
+    if (mt.setAttribute) mt.setAttribute('aria-checked', String(!musicMuted));
   }
-  if (sb) {
-    sb.textContent = sfxMuted ? '🔇' : '🔊';
-    sb.classList.toggle('muted', sfxMuted);
-    sb.title = T('sfx');
+  if (st) {
+    st.checked = !sfxMuted;
+    if (st.setAttribute) st.setAttribute('aria-checked', String(!sfxMuted));
   }
 }
 

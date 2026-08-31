@@ -10,7 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="style.css?v=2.3" />
+  <link rel="stylesheet" href="style.css?v=2.6" />
 </head>
 <body>
   <!-- Animated background -->
@@ -20,11 +20,35 @@
     <div class="blob blob--3"></div>
   </div>
 
-  <!-- Language / music / sound controls (always visible) -->
+  <!-- Settings gear: opens the language / music / sound panel -->
   <div class="audio-controls">
-    <button id="langBtn" class="audio-btn" title="English">🇬🇧</button>
-    <button id="musicBtn" class="audio-btn" data-i18n-title="music" aria-label="Music">🎵</button>
-    <button id="sfxBtn" class="audio-btn" data-i18n-title="sfx" aria-label="Sound effects">🔊</button>
+    <button id="settingsBtn" class="audio-btn" data-i18n-title="settings" aria-label="Settings" aria-haspopup="true" aria-expanded="false">⚙️</button>
+    <div id="settingsPanel" class="settings-panel" role="dialog" aria-label="Settings" hidden>
+      <div class="settings-row">
+        <span class="settings-row-label" data-i18n="language">🌐 Language</span>
+        <div class="lang-select" role="group" aria-label="Language">
+          <button type="button" id="langEn" class="lang-btn" data-lang="en" aria-pressed="true">🇬🇧</button>
+          <button type="button" id="langDe" class="lang-btn" data-lang="de" aria-pressed="false">🇩🇪</button>
+          <button type="button" id="langPl" class="lang-btn" data-lang="pl" aria-pressed="false">🇵🇱</button>
+          <button type="button" id="langEs" class="lang-btn" data-lang="es" aria-pressed="false">🇪🇸</button>
+          <button type="button" id="langRu" class="lang-btn" data-lang="ru" aria-pressed="false">🇷🇺</button>
+          <button type="button" id="langTr" class="lang-btn" data-lang="tr" aria-pressed="false">🇹🇷</button>
+          <button type="button" id="langFr" class="lang-btn" data-lang="fr" aria-pressed="false">🇫🇷</button>
+          <button type="button" id="langNo" class="lang-btn" data-lang="no" aria-pressed="false">🇳🇴</button>
+          <button type="button" id="langZh" class="lang-btn" data-lang="zh" aria-pressed="false">🇨🇳</button>
+        </div>
+      </div>
+      <label class="toggle settings-toggle" for="musicToggle">
+        <input type="checkbox" id="musicToggle" />
+        <span class="toggle-slider"></span>
+        <span class="toggle-label" data-i18n="music">Music</span>
+      </label>
+      <label class="toggle settings-toggle" for="sfxToggle">
+        <input type="checkbox" id="sfxToggle" />
+        <span class="toggle-slider"></span>
+        <span class="toggle-label" data-i18n="sfx">Sound effects</span>
+      </label>
+    </div>
   </div>
 
   <main class="container">
@@ -148,15 +172,15 @@
     </div>
   </div>
 
-  <script src="js/translations.js?v=2.3"></script>
-  <script src="js/i18n.js?v=2.3"></script>
-  <script src="js/config.js?v=2.3"></script>
-  <script src="js/state.js?v=2.3"></script>
-  <script src="js/dom.js?v=2.3"></script>
-  <script src="js/seeded.js?v=2.3"></script>
-  <script src="js/puzzle.js?v=2.3"></script>
-  <script src="js/game.js?v=2.3"></script>
-  <script src="js/audio.js?v=2.3"></script>
-  <script src="js/ui.js?v=2.3"></script>
+  <script src="js/translations.js?v=2.6"></script>
+  <script src="js/i18n.js?v=2.6"></script>
+  <script src="js/config.js?v=2.6"></script>
+  <script src="js/state.js?v=2.6"></script>
+  <script src="js/dom.js?v=2.6"></script>
+  <script src="js/seeded.js?v=2.6"></script>
+  <script src="js/puzzle.js?v=2.6"></script>
+  <script src="js/game.js?v=2.6"></script>
+  <script src="js/audio.js?v=2.6"></script>
+  <script src="js/ui.js?v=2.6"></script>
 </body>
 </html>

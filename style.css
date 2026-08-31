@@ -722,7 +722,7 @@ body {
 
 .modal-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 
-/* Music / sound mute buttons (always visible, top-right) */
+/* Settings gear + popover panel (top-right, touch friendly) */
 .audio-controls {
   position: fixed;
   top: 14px;
@@ -730,16 +730,17 @@ body {
   z-index: 70;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
 }
 
 .audio-btn {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   background: var(--glass);
   border: 1px solid var(--glass-border);
   border-radius: 50%;
@@ -747,11 +748,85 @@ body {
   box-shadow: 0 6px 18px rgba(50, 50, 93, 0.14);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  transition: transform 0.2s, opacity 0.2s, background 0.2s;
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
 .audio-btn:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.9); }
-.audio-btn.muted { opacity: 0.5; }
+.audio-btn.open { background: rgba(255, 255, 255, 0.95); box-shadow: 0 8px 24px rgba(50, 50, 93, 0.24); }
+
+/* Settings popover: language picker + music / SFX toggles */
+.settings-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(243, 246, 255, 0.97));
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 14px;
+  width: min(240px, calc(100vw - 28px));
+  box-shadow: 0 24px 60px rgba(50, 50, 93, 0.26);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform-origin: top right;
+  animation: panelIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.settings-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+
+.settings-row-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-dim);
+}
+
+.lang-select {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.lang-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  font-family: inherit;
+  font-size: 1.45rem;
+  line-height: 1;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.lang-btn:hover { background: rgba(255, 255, 255, 0.9); }
+.lang-btn:active { transform: scale(0.96); }
+
+.lang-btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+}
+
+/* Reuse the existing toggle-switch component inside the panel */
+.settings-toggle {
+  grid-column: auto;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+.settings-toggle:last-child { margin-bottom: 0; }
 
 /* Responsive */
 @media (max-width: 640px) {

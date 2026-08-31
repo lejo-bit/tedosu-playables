@@ -14,7 +14,7 @@ No build step, no dependencies, no server required — just open `index.html` an
 
 - 🐱 **Three game modes** — Kids 4×4 (cat icons), Classic 9×9, and Hex 16×16 (digits `0`–`F`)
 - 🎚️ **Three difficulty levels** — each with its own per-piece timers, special-piece odds, and lives
-- 🌍 **Multilingual** — switch the whole game between **English, Deutsch, and Polski** with the flag button (persisted)
+- 🌍 **Multilingual** — switch the whole game between **English, Deutsch, Polski, Español, Русский, Türkçe, Français, Norsk, and 中文** with the flag buttons (persisted)
 - 🎵 **Music & sound effects** — ambient music and event sounds with **two separate mute buttons** (music and SFX, each remembered)
 - 🎲 **Seeded puzzles** — every game is generated deterministically from a seed, so puzzles can be shared and replayed
 - 🧩 **Fair dealing** — you are only ever handed a piece that has at least one legal spot on the board, so the game never dead-ends

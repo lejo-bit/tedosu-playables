@@ -562,13 +562,25 @@ const testCode = `
     T('mode.classic9') === 'Classic 9x9' &&
     T('modeDesc.classic9').includes('9×9') &&
     T('modeDesc.kids4').includes('4×4');
-  // The flag button cycles en -> de -> pl -> en
+  // The language buttons cycle through all nine: en -> de -> pl -> es -> ru -> tr -> fr -> no -> zh -> en
   cycleLanguage();
   __results.i18nCycle1 = currentLang === 'de';
   cycleLanguage();
   __results.i18nCycle2 = currentLang === 'pl';
   cycleLanguage();
-  __results.i18nCycle3 = currentLang === 'en';
+  __results.i18nCycle3 = currentLang === 'es';
+  cycleLanguage();
+  __results.i18nCycle4 = currentLang === 'ru';
+  cycleLanguage();
+  __results.i18nCycle5 = currentLang === 'tr';
+  cycleLanguage();
+  __results.i18nCycle6 = currentLang === 'fr';
+  cycleLanguage();
+  __results.i18nCycle7 = currentLang === 'no';
+  cycleLanguage();
+  __results.i18nCycle8 = currentLang === 'zh';
+  cycleLanguage();
+  __results.i18nCycle9 = currentLang === 'en';
   setLanguage('de');
   __results.i18nDe =
     T('startGame') === '▶ Spiel starten' &&
@@ -580,6 +592,34 @@ const testCode = `
     T('livesCount', { n: 1 }) === '1 życie' &&
     T('livesCount', { n: 2 }) === '2 życia' &&
     T('livesCount', { n: 5 }) === '5 żyć';
+  setLanguage('es');
+  __results.i18nEs =
+    T('startGame') === '▶ Iniciar juego' &&
+    T('livesCount', { n: 1 }) === '1 vida' &&
+    T('livesCount', { n: 3 }) === '3 vidas';
+  setLanguage('ru');
+  __results.i18nRu =
+    T('startGame') === '▶ Начать игру' &&
+    T('livesCount', { n: 1 }) === '1 жизнь' &&
+    T('livesCount', { n: 5 }) === '5 жизней';
+  setLanguage('tr');
+  __results.i18nTr =
+    T('startGame') === '▶ Oyunu Başlat' &&
+    T('livesCount', { n: 3 }) === '3 can';
+  setLanguage('fr');
+  __results.i18nFr =
+    T('startGame') === '▶ Commencer la partie' &&
+    T('livesCount', { n: 1 }) === '1 vie' &&
+    T('livesCount', { n: 3 }) === '3 vies';
+  setLanguage('no');
+  __results.i18nNo =
+    T('startGame') === '▶ Start spill' &&
+    T('livesCount', { n: 3 }) === '3 liv' &&
+    T('diff.medium') === 'Middels';
+  setLanguage('zh');
+  __results.i18nZh =
+    T('startGame') === '▶ 开始游戏' &&
+    T('livesCount', { n: 3 }) === '3 条命';
   __results.i18nFallback = T('no_such_key') === 'no_such_key'; // unknown -> key itself
   setLanguage('en');
 
@@ -653,6 +693,6 @@ console.log('  shown: ' + r.specialInfoShown + ', name: ' + r.specialInfoName + 
 console.log('TEST Q (board intro animation):');
 console.log('  frames scheduled: ' + r.introFramesScheduled + ', hidden at start: ' + r.introCellHiddenAtStart + ', first visible mid-wave: ' + r.introFirstVisibleMidWave + ', last hidden mid-wave: ' + r.introLastHiddenMidWave + ', all visible at end: ' + r.introAllVisible);
 console.log('TEST R (language switching):');
-console.log('  en: ' + r.i18nEn + ', de: ' + r.i18nDe + ', pl: ' + r.i18nPl + ', mode descriptions resolve: ' + r.i18nModeDesc + ', flag cycles en->de->pl->en: ' + (r.i18nCycle1 && r.i18nCycle2 && r.i18nCycle3) + ', unknown-key fallback: ' + r.i18nFallback);
+console.log('  en: ' + r.i18nEn + ', de: ' + r.i18nDe + ', pl: ' + r.i18nPl + ', es: ' + r.i18nEs + ', ru: ' + r.i18nRu + ', tr: ' + r.i18nTr + ', fr: ' + r.i18nFr + ', no: ' + r.i18nNo + ', zh: ' + r.i18nZh + ', mode descriptions resolve: ' + r.i18nModeDesc + ', flag cycles all 9: ' + (r.i18nCycle1 && r.i18nCycle2 && r.i18nCycle3 && r.i18nCycle4 && r.i18nCycle5 && r.i18nCycle6 && r.i18nCycle7 && r.i18nCycle8 && r.i18nCycle9) + ', unknown-key fallback: ' + r.i18nFallback);
 console.log('TEST S (audio toggles):');
 console.log('  music persisted: ' + r.musicPersisted + ', unmuted persisted: ' + r.musicUnmutedPersisted + ', sfx persisted: ' + r.sfxPersisted + ', unmuted persisted: ' + r.sfxUnmutedPersisted + ', safe without audio: ' + r.audioSafe + ', no crash: ' + r.audioNoCrash);

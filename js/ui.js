@@ -379,6 +379,32 @@ function showMessage(text, type) {
   }, 5000);
 }
 
+// --- Settings panel (⚙️ gear) ----------------------------------------
+
+// Opens / closes the settings popover. Pass true/false to force a state;
+// without an argument it toggles (tap the gear to open, tap again to close).
+function toggleSettings(force) {
+  const open = force !== undefined ? force : settingsPanel.hidden;
+  settingsPanel.hidden = !open;
+  settingsBtn.classList.toggle('open', open);
+  if (settingsBtn.setAttribute) {
+    settingsBtn.setAttribute('aria-expanded', String(open));
+    settingsBtn.setAttribute('aria-controls', 'settingsPanel');
+  }
+}
+
+// Close the panel on an outside tap or the Escape key (touch friendly).
+if (typeof document.addEventListener === 'function') {
+  document.addEventListener('click', (e) => {
+    if (settingsPanel.hidden) return;
+    if (settingsPanel.contains && (settingsPanel.contains(e.target) || settingsBtn.contains(e.target))) return;
+    toggleSettings(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !settingsPanel.hidden) toggleSettings(false);
+  });
+}
+
 // =====================================================================
 // Startup: wire up the event listeners and render the picker state.
 // (This file must be loaded last - it depends on config, state, dom,
@@ -404,11 +430,21 @@ difficultySelect.addEventListener('change', () => {
   updateDifficultyDescription();
   updateControls();
 });
-languageBtn.addEventListener('click', cycleLanguage);
-musicBtn.addEventListener('click', () => { ensureAudio(); toggleMusic(); });
-sfxBtn.addEventListener('click', () => { ensureAudio(); toggleSfx(); });
+settingsBtn.addEventListener('click', toggleSettings);
+// Language buttons select a language directly (one tap - no cycling).
+langEnBtn.addEventListener('click', () => { setLanguage('en'); playSfx('click'); });
+langDeBtn.addEventListener('click', () => { setLanguage('de'); playSfx('click'); });
+langPlBtn.addEventListener('click', () => { setLanguage('pl'); playSfx('click'); });
+langEsBtn.addEventListener('click', () => { setLanguage('es'); playSfx('click'); });
+langRuBtn.addEventListener('click', () => { setLanguage('ru'); playSfx('click'); });
+langTrBtn.addEventListener('click', () => { setLanguage('tr'); playSfx('click'); });
+langFrBtn.addEventListener('click', () => { setLanguage('fr'); playSfx('click'); });
+langNoBtn.addEventListener('click', () => { setLanguage('no'); playSfx('click'); });
+langZhBtn.addEventListener('click', () => { setLanguage('zh'); playSfx('click'); });
+musicToggle.addEventListener('change', () => { ensureAudio(); toggleMusic(); });
+sfxToggle.addEventListener('change', () => { ensureAudio(); toggleSfx(); });
 // Click sound on the main UI buttons
-[startBtn, newGameBtn, resetBtn, hintBtn, menuBtn, winPlayAgainBtn, winMenuBtn].forEach(b =>
+[startBtn, newGameBtn, resetBtn, hintBtn, menuBtn, winPlayAgainBtn, winMenuBtn, settingsBtn].forEach(b =>
   b.addEventListener('click', () => playSfx('click'))
 );
 
