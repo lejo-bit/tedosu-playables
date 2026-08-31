@@ -171,7 +171,7 @@ function renderCurrentPiece() {
   if (special) {
     specialPieceInfoEl.hidden = false;
     specialPieceNameEl.textContent = gameState.currentPiece.label || '';
-    specialPieceDescEl.textContent = gameState.currentPiece.desc || '';
+    specialPieceDescEl.textContent = T(gameState.currentPiece.desc || '');
   } else {
     specialPieceInfoEl.hidden = true;
   }
@@ -271,7 +271,8 @@ function getValueDisplay(value) {
 // Shows the description for the currently selected game mode.
 function updateModeDescription() {
   const key = gameModeSelect.value;
-  modeDescriptionEl.textContent = MODE_DESCRIPTIONS[key] || '';
+  // Mode values use hyphens ('classic-9') but translation keys do not ('classic9')
+  modeDescriptionEl.textContent = T('modeDesc.' + key.replace(/-/g, '')) || '';
 }
 
 // Shows a difficulty description tailored to the selected mode + difficulty.
@@ -280,19 +281,30 @@ function updateDifficultyDescription() {
   const difficulty = difficultySelect.value;
   const isKids = modeKey === 'kids-4';
   const rules = DIFFICULTY_RULES[difficulty] || DIFFICULTY_RULES.easy;
-  const lives = `${rules.lives} ${rules.lives === 1 ? 'life' : 'lives'}`;
 
-  let text = `${lives}. Every wrong move costs a life.`;
+  let text = `${T('livesCount', { n: rules.lives })}. ${T('everyWrongMove')}`;
   if (isKids) {
-    text += difficulty === 'hard' ? ' No hints.' : ' Free hints.';
+    text += ` ${T(difficulty === 'hard' ? 'noHints' : 'freeHints')}`;
   } else {
     const seconds = (rules.pieceSeconds || {})[modeKey] || 0;
     const pct = (rules.specialChance || 0) * 100;
     const pctText = Number.isInteger(pct) ? String(pct) : pct.toFixed(1).replace(/\.0$/, '');
-    text += ` ${seconds}s per piece. Special pieces: ${pctText}% chance (fewer as the board fills).`;
+    text += ` ${T('pieceSecondsInfo', { s: seconds, p: pctText })}`;
   }
 
   difficultyDescriptionEl.textContent = text;
+}
+
+// Re-renders all dynamic text when the language changes.
+function applyLanguage() {
+  updateModeDescription();
+  updateDifficultyDescription();
+  syncAudioButtons();
+  if (gameState.mode) {
+    gameModeTitleEl.textContent = T('mode.' + gameState.mode.key.replace(/-/g, ''));
+    gameBadgeEl.textContent = T('diff.' + gameState.difficulty);
+    renderCurrentPiece(); // re-translate the special piece description
+  }
 }
 
 // Mode change handler: description, Kids difficulty options, and buttons.
@@ -392,10 +404,23 @@ difficultySelect.addEventListener('change', () => {
   updateDifficultyDescription();
   updateControls();
 });
+languageBtn.addEventListener('click', cycleLanguage);
+musicBtn.addEventListener('click', () => { ensureAudio(); toggleMusic(); });
+sfxBtn.addEventListener('click', () => { ensureAudio(); toggleSfx(); });
+// Click sound on the main UI buttons
+[startBtn, newGameBtn, resetBtn, hintBtn, menuBtn, winPlayAgainBtn, winMenuBtn].forEach(b =>
+  b.addEventListener('click', () => playSfx('click'))
+);
 
 // Show the current mode description + button availability on load
 updateModeUI();
 
 // Show a random cat as the logo (with its hover name)
 randomizeLogo();
+
+// Restore the saved language + audio prefs and apply static translations
+loadAudioPrefs();
+initLanguage();
+applyStaticTranslations();
+syncAudioButtons();
 

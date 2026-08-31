@@ -17,6 +17,7 @@ let gameState = {
   pieceTimeLeft: 0,    // seconds left for the current piece
   pieceTimerInterval: null,
   hints: 0,            // hint uses (Kids Easy hints are free; no piece grants hints anymore)
+  urgentPlayed: false, // the piece timer's low-time warning sound has played
   badLuckLeft: 0,      // real seconds left of the 4x-faster piece timer (Daya)
   autoPieceTimeout: null, // handle for auto-resolving special pieces (Loki / Daya)
   revealTimeout: null,    // handle for the Spy reveal fade loop

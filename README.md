@@ -6,14 +6,16 @@ Tedosu is a browser puzzle game that mixes classic Sudoku with a Tetris-inspired
 
 No build step, no dependencies, no server required — just open `index.html` and play.
 
-![Version](https://img.shields.io/badge/version-1.8-important)
+![Version](https://img.shields.io/badge/version-2.3-important)
 
 ---
 
 ## Features
 
 - 🐱 **Three game modes** — Kids 4×4 (cat icons), Classic 9×9, and Hex 16×16 (digits `0`–`F`)
-- 🎚️ **Three difficulty levels** — each with its own lives, warning colors, per-piece timers, and special-piece odds
+- 🎚️ **Three difficulty levels** — each with its own per-piece timers, special-piece odds, and lives
+- 🌍 **Multilingual** — switch the whole game between **English, Deutsch, and Polski** with the flag button (persisted)
+- 🎵 **Music & sound effects** — ambient music and event sounds with **two separate mute buttons** (music and SFX, each remembered)
 - 🎲 **Seeded puzzles** — every game is generated deterministically from a seed, so puzzles can be shared and replayed
 - 🧩 **Fair dealing** — you are only ever handed a piece that has at least one legal spot on the board, so the game never dead-ends
 - ⭐ **Special cat power-ups** — Chu-chu, Ymil, Loki, and Daya appear as surprise pieces in 9×9 and 16×16 games (two need a click, two auto-resolve)
@@ -124,7 +126,7 @@ The repo ships a Node-based test harness (`test-game-logic.js`) that stubs the D
 node test-game-logic.js
 ```
 
-It runs 17 test suites (A–Q) covering optimal play, wrong-move rejection, all modes, win/game-over modals, lives, warning marks, per-piece timers, message auto-clear, difficulty descriptions, random logos, special pieces, seed determinism, the pity system, and the board intro animation.
+It runs 19 test suites (A–S) covering optimal play, wrong-move rejection, all modes, win/game-over modals, lives, per-piece timers, message auto-clear, difficulty descriptions, random logos, special pieces, seed determinism, the pity system, the board intro animation, language switching, and the audio toggles.
 
 ---
 
@@ -139,12 +141,15 @@ tedoku/
 ├── assets/
 │   └── cats/               # Cat icon images (1.png – 4.png)
 ├── js/
+│   ├── translations.js     # All UI strings (English / Deutsch / Polski)
+│   ├── i18n.js             # Language switching logic (T / setLanguage / plural rules)
 │   ├── config.js           # Game modes, difficulty rules, special-piece definitions
 │   ├── state.js            # Shared mutable game state
 │   ├── dom.js              # Cached DOM element references
 │   ├── seeded.js           # 64-bit deterministic RNG + seeded Sudoku generator
 │   ├── puzzle.js           # Seeded puzzle generation (solution + playable puzzle)
 │   ├── game.js             # Core game logic (moves, lives, timers, specials, seeds)
+│   ├── audio.js            # Web Audio engine - ambient music + sound effects
 │   └── ui.js               # Rendering, messages, picker descriptions, startup wiring
 └── test-game-logic.js      # Node test harness with DOM stubs
 ```

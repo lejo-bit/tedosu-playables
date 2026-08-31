@@ -46,10 +46,13 @@ function startNewGame(opts = {}) {
   stopAutoPieceTimer();
   gameState.gameActive = true;
 
+  // Audio: (re)start the music if enabled (Start/New/Reset/Play Again are gestures)
+  ensureAudio();
+  if (!musicMuted) startMusic();
+
   // Update header
-  const modeLabel = gameModeSelect.options[gameModeSelect.selectedIndex].text;
-  gameModeTitleEl.textContent = modeLabel;
-  gameBadgeEl.textContent = gameState.difficulty.charAt(0).toUpperCase() + gameState.difficulty.slice(1);
+  gameModeTitleEl.textContent = T('mode.' + modeKey.replace(/-/g, ''));
+  gameBadgeEl.textContent = T('diff.' + difficulty);
 
   // Update UI
   renderBoard();
@@ -58,7 +61,7 @@ function startNewGame(opts = {}) {
   updateControls();
   updateSeedDisplay();
   nextPiece();
-  showMessage('Game started! Place the current piece.', 'info');
+  showMessage(T('gameStarted'), 'info');
   showScreen('game');
   animateBoardIn(); // board cells appear staggered (zoom-in) once visible
 
@@ -99,7 +102,7 @@ function getPlayablePieces() {
 function handleNoMoves() {
   gameState.gameActive = false;
   stopPieceTimer();
-  showMessage('No valid moves left - press Reset to try again.', 'error');
+  showMessage(T('noMoves'), 'error');
 }
 
 // True when the current piece is one of the special cat power-ups.
@@ -151,6 +154,7 @@ function nextPiece() {
       const piece = pickSpecialPiece();
       gameState.currentPiece = piece;
       renderCurrentPiece();
+      playSfx('special');
       if (piece.kind === 'auto') {
         startAutoPieceTimer(piece);
       } else {
@@ -195,6 +199,7 @@ function handleCellClick(row, col) {
     gameState.board[row][col] = value;
     renderBoard();
     updateInfo();
+    playSfx('place');
 
     // Check win
     if (checkWin()) {
@@ -206,7 +211,8 @@ function handleCellClick(row, col) {
     // Wrong cell for this piece: every wrong move costs one life.
     gameState.errors++;
     updateInfo();
-    if (loseLife('Mistake!')) return; // game over - out of lives
+    playSfx('mistake');
+    if (loseLife(T('mistake'))) return; // game over - out of lives
   }
 }
 
@@ -228,13 +234,14 @@ function applySpecialPiece(piece, row, col) {
         endGame(true);
         return;
       }
-      showMessage('Joker: Placed the correct number.', 'success');
+      showMessage(T('jokerPlaced'), 'success');
+      playSfx('place');
       break;
     }
 
     case 'reveal':
       revealNeighbors(row, col);
-      showMessage('Spy: Fields shown for 5 seconds.', 'info');
+      showMessage(T('spyReveal'), 'info');
       break;
   }
   nextPiece();
@@ -380,7 +387,7 @@ function endGame(won) {
   winErrorsEl.textContent = gameState.errors;
 
   if (won) {
-    winTitleEl.textContent = '🎉 You Win!';
+    winTitleEl.textContent = T('youWin');
     winMessageEl.classList.remove('danger');
     let bestNote = '';
     if (gameState.timed) {
@@ -391,21 +398,23 @@ function endGame(won) {
         const best = localStorage.getItem(key);
         if (!best || gameState.timer < parseInt(best)) {
           localStorage.setItem(key, gameState.timer.toString());
-          bestNote = 'New best time!';
+          bestNote = T('newBest');
         } else {
-          bestNote = `Best: ${formatTime(parseInt(best))}`;
+          bestNote = T('bestTime', { time: formatTime(parseInt(best)) });
         }
       } catch (e) {
         bestNote = '';
       }
     }
     winMessageEl.textContent = bestNote;
-    showMessage(bestNote ? `Congratulations! ${bestNote}` : 'Congratulations!', 'success');
+    playSfx('win');
+    showMessage(bestNote ? T('congratsBest', { note: bestNote }) : T('congrats'), 'success');
   } else {
-    winTitleEl.textContent = '💔 Game Over';
+    winTitleEl.textContent = T('gameOver');
     winMessageEl.classList.add('danger');
-    winMessageEl.textContent = 'You ran out of lives!';
-    showMessage('Game over - better luck next time!', 'error');
+    winMessageEl.textContent = T('ranOutOfLives');
+    playSfx('gameover');
+    showMessage(T('gameOverMsg'), 'error');
   }
 
   winModal.hidden = false;
@@ -455,7 +464,7 @@ function showHint() {
     const cell = boardEl.children[cellIndex];
     cell.classList.add('highlight');
     setTimeout(() => cell.classList.remove('highlight'), 1500);
-    showMessage('Hint shown!', 'info');
+    showMessage(T('hintShown'), 'info');
   }
 }
 
@@ -465,11 +474,12 @@ function loseLife(reason) {
   gameState.lives--;
   renderBoard();
   updateInfo();
+  playSfx('lose');
   if (gameState.lives <= 0) {
     endGame(false); // Game over - out of lives
     return true;
   }
-  showMessage(`${reason} ${gameState.lives} ${gameState.lives === 1 ? 'life' : 'lives'} left`, 'error');
+  showMessage(`${reason} ${T('lifeLeft', { n: gameState.lives })}`, 'error');
   return false;
 }
 
@@ -485,6 +495,11 @@ function updatePieceTimer() {
     pieceTimerValueEl.textContent = formatTime(gameState.pieceTimeLeft) + (crazy ? ' ×4' : '');
     pieceTimerWrapEl.classList.toggle('crazy', crazy);
     pieceTimerWrapEl.classList.toggle('urgent', gameState.pieceTimeLeft <= 10 && !crazy);
+    // Low-time warning sound (plays once per piece)
+    if (gameState.pieceTimeLeft <= 10 && !crazy && !gameState.urgentPlayed) {
+      playSfx('urgent');
+      gameState.urgentPlayed = true;
+    }
   } else {
     pieceTimerWrapEl.hidden = true;
     pieceTimerWrapEl.classList.remove('crazy', 'urgent');
@@ -500,6 +515,7 @@ function startPieceTimer() {
   const modeSeconds = (hasTimer && rules.pieceSeconds) ? (rules.pieceSeconds[gameState.mode.key] || 0) : 0;
   gameState.pieceSeconds = modeSeconds;
   gameState.pieceTimeLeft = gameState.pieceSeconds;
+  gameState.urgentPlayed = false;
   updatePieceTimer();
   if (gameState.pieceSeconds <= 0) return;
   gameState.pieceTimerInterval = setInterval(pieceTimerTick, 1000);
@@ -529,7 +545,7 @@ function stopPieceTimer() {
 // The current piece ran out of time: lose a life, then deal a new piece.
 function onPieceTimerExpired() {
   if (!gameState.gameActive) return;
-  if (loseLife("Time's up!")) return; // game over - out of lives
+  if (loseLife(T('timesUp'))) return; // game over - out of lives
   nextPiece(); // a fresh piece restarts the timer
 }
 
@@ -564,11 +580,13 @@ function applyAutoPiece(piece) {
     spawnHeartPop();
     livesEl.classList.add('lives-pop');
     setTimeout(() => livesEl.classList.remove('lives-pop'), 750);
-    showMessage('Extra life! +1 heart ❤️', 'success');
+    playSfx('heart');
+    showMessage(T('extraLife'), 'success');
   } else if (piece.key === 'hints') {
     // Daya - Bad luck: the piece timer runs 4x faster for 30 seconds.
     gameState.badLuckLeft = 30;
-    showMessage('Bad luck! The timer runs 4x faster for 30 seconds!', 'error');
+    playSfx('badluck');
+    showMessage(T('badLuck'), 'error');
   }
   nextPiece();
 }

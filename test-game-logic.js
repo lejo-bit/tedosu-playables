@@ -56,7 +56,7 @@ const sandbox = {
   __clock: 0,             // controllable clock for performance.now()
   performance: { now: () => sandbox.__clock },
   requestAnimationFrame: (fn) => { sandbox.__frames.push(fn); return sandbox.__frames.length; },
-  localStorage: { getItem: () => null, setItem: () => {} },
+  localStorage: (() => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })(),
   document: {
     getElementById: getEl,
     createElement: (tag) => makeEl('<' + tag + '>'),
@@ -66,7 +66,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 // Load the split source files in the same order as index.html.
-const scriptFiles = ['config.js', 'state.js', 'dom.js', 'seeded.js', 'puzzle.js', 'game.js', 'ui.js'];
+const scriptFiles = ['translations.js', 'i18n.js', 'config.js', 'state.js', 'dom.js', 'seeded.js', 'puzzle.js', 'game.js', 'audio.js', 'ui.js'];
 const code = scriptFiles
   .map(f => fs.readFileSync(path.join(__dirname, 'js', f), 'utf8'))
   .join('\n');
@@ -519,7 +519,7 @@ const testCode = `
   __results.specialInfoOk =
     __results.specialInfoShown &&
     __results.specialInfoName === SPECIAL_PIECES[pickedSpecial.key].label &&
-    __results.specialInfoDesc === SPECIAL_PIECES[pickedSpecial.key].desc;
+    __results.specialInfoDesc === T(SPECIAL_PIECES[pickedSpecial.key].desc);
 
   // TEST Q: the board intro animation staggers cells in via requestAnimationFrame.
   gameState.mode = GAME_MODES['classic-9'];
@@ -551,6 +551,53 @@ const testCode = `
   }
   __results.introAllVisible =
     introFirst.style.opacity === '1' && introLast.style.opacity === '1' && introGuard > 0; // expect true
+
+  // TEST R: language switching (EN / DE / PL) + fallback.
+  setLanguage('en');
+  __results.i18nEn =
+    T('startGame') === '▶ Start Game' &&
+    T('livesCount', { n: 1 }) === '1 life' &&
+    T('livesCount', { n: 3 }) === '3 lives';
+  __results.i18nModeDesc =
+    T('mode.classic9') === 'Classic 9x9' &&
+    T('modeDesc.classic9').includes('9×9') &&
+    T('modeDesc.kids4').includes('4×4');
+  // The flag button cycles en -> de -> pl -> en
+  cycleLanguage();
+  __results.i18nCycle1 = currentLang === 'de';
+  cycleLanguage();
+  __results.i18nCycle2 = currentLang === 'pl';
+  cycleLanguage();
+  __results.i18nCycle3 = currentLang === 'en';
+  setLanguage('de');
+  __results.i18nDe =
+    T('startGame') === '▶ Spiel starten' &&
+    T('livesCount', { n: 3 }) === '3 Leben' &&
+    T('diff.medium') === 'Mittel';
+  setLanguage('pl');
+  __results.i18nPl =
+    T('startGame') === '▶ Rozpocznij grę' &&
+    T('livesCount', { n: 1 }) === '1 życie' &&
+    T('livesCount', { n: 2 }) === '2 życia' &&
+    T('livesCount', { n: 5 }) === '5 żyć';
+  __results.i18nFallback = T('no_such_key') === 'no_such_key'; // unknown -> key itself
+  setLanguage('en');
+
+  // TEST S: music + sfx mute toggles persist separately and never crash
+  // without an AudioContext.
+  toggleMusic();
+  __results.musicPersisted = localStorage.getItem('tedosu_music_muted') === '1';
+  toggleMusic();
+  __results.musicUnmutedPersisted = localStorage.getItem('tedosu_music_muted') === '0';
+  toggleSfx();
+  __results.sfxPersisted = localStorage.getItem('tedosu_sfx_muted') === '1';
+  toggleSfx();
+  __results.sfxUnmutedPersisted = localStorage.getItem('tedosu_sfx_muted') === '0';
+  __results.audioSafe = ensureAudio() === false; // no AudioContext in Node
+  playSfx('win');
+  playSfx('place');
+  syncAudioButtons();
+  __results.audioNoCrash = true;
 })();
 `;
 
@@ -605,3 +652,7 @@ console.log('TEST P (special piece info):');
 console.log('  shown: ' + r.specialInfoShown + ', name: ' + r.specialInfoName + ', desc: ' + r.specialInfoDesc + ', ok: ' + r.specialInfoOk);
 console.log('TEST Q (board intro animation):');
 console.log('  frames scheduled: ' + r.introFramesScheduled + ', hidden at start: ' + r.introCellHiddenAtStart + ', first visible mid-wave: ' + r.introFirstVisibleMidWave + ', last hidden mid-wave: ' + r.introLastHiddenMidWave + ', all visible at end: ' + r.introAllVisible);
+console.log('TEST R (language switching):');
+console.log('  en: ' + r.i18nEn + ', de: ' + r.i18nDe + ', pl: ' + r.i18nPl + ', mode descriptions resolve: ' + r.i18nModeDesc + ', flag cycles en->de->pl->en: ' + (r.i18nCycle1 && r.i18nCycle2 && r.i18nCycle3) + ', unknown-key fallback: ' + r.i18nFallback);
+console.log('TEST S (audio toggles):');
+console.log('  music persisted: ' + r.musicPersisted + ', unmuted persisted: ' + r.musicUnmutedPersisted + ', sfx persisted: ' + r.sfxPersisted + ', unmuted persisted: ' + r.sfxUnmutedPersisted + ', safe without audio: ' + r.audioSafe + ', no crash: ' + r.audioNoCrash);

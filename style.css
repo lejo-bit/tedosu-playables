@@ -722,6 +722,37 @@ body {
 
 .modal-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 
+/* Music / sound mute buttons (always visible, top-right) */
+.audio-controls {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audio-btn {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(50, 50, 93, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.2s, opacity 0.2s, background 0.2s;
+}
+
+.audio-btn:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.9); }
+.audio-btn.muted { opacity: 0.5; }
+
 /* Responsive */
 @media (max-width: 640px) {
   body { padding: 14px 10px; }

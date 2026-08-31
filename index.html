@@ -10,7 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="style.css?v=1.8" />
+  <link rel="stylesheet" href="style.css?v=2.3" />
 </head>
 <body>
   <!-- Animated background -->
@@ -20,70 +20,77 @@
     <div class="blob blob--3"></div>
   </div>
 
+  <!-- Language / music / sound controls (always visible) -->
+  <div class="audio-controls">
+    <button id="langBtn" class="audio-btn" title="English">🇬🇧</button>
+    <button id="musicBtn" class="audio-btn" data-i18n-title="music" aria-label="Music">🎵</button>
+    <button id="sfxBtn" class="audio-btn" data-i18n-title="sfx" aria-label="Sound effects">🔊</button>
+  </div>
+
   <main class="container">
     <!-- ═══════════════ START SCREEN ═══════════════ -->
     <section id="startScreen" class="screen active">
       <div class="hero">
-        <img id="logo" src="assets/cats/1.png" alt="Sudoku Tetris Logo" class="logo" width="100px" height="100px" />
+        <img id="logo" src="assets/cats/1.png" alt="Tedosu Logo" class="logo" width="100px" height="100px" />
         <h1 class="title"><span class="gradient-text">Tedosu</span></h1>
-        <p class="tagline">One piece at a time.</p>
+        <p class="tagline" data-i18n="tagline">One piece at a time.</p>
       </div>
 
       <div class="card settings-card">
         <div class="setting-group">
-          <label for="gameMode">🎮 Game Mode</label>
+          <label for="gameMode" data-i18n="gameMode">🎮 Game Mode</label>
           <select id="gameMode">
-            <option value="kids-4">Kids 4x4 (Cats)</option>
-            <option value="classic-9" selected>Classic 9x9</option>
-            <option value="hex-16">Hex 16x16</option>
+            <option value="kids-4" data-i18n="mode.kids4">Kids 4x4 (Cats)</option>
+            <option value="classic-9" selected data-i18n="mode.classic9">Classic 9x9</option>
+            <option value="hex-16" data-i18n="mode.hex16">Hex 16x16</option>
           </select>
           <p id="modeDescription" class="mode-description"></p>
         </div>
 
         <div class="setting-group">
-          <label for="difficulty">Difficulty</label>
+          <label for="difficulty" data-i18n="difficulty">Difficulty</label>
           <select id="difficulty">
-            <option value="easy">Easy</option>
-            <option value="medium" selected>Medium</option>
-            <option value="hard">Hard</option>
+            <option value="easy" data-i18n="diff.easy">Easy</option>
+            <option value="medium" selected data-i18n="diff.medium">Medium</option>
+            <option value="hard" data-i18n="diff.hard">Hard</option>
           </select>
           <p id="difficultyDescription" class="mode-description"></p>
         </div>
 
         <div class="setting-group seed-group">
-          <label for="seedInput">🎲 Seed (optional)</label>
-          <input type="text" id="seedInput" class="seed-input" placeholder="e.g. 0x1A2B3C4D5E6F or any text" />
-          <p class="mode-description">Leave empty for a random seed.</p>
+          <label for="seedInput" data-i18n="seedOptional">🎲 Seed (optional)</label>
+          <input type="text" id="seedInput" class="seed-input" data-i18n-placeholder="seedPlaceholder" placeholder="e.g. 0x1A2B3C4D5E6F or any text" />
+          <p class="mode-description" data-i18n="seedLeaveEmpty">Leave empty for a random seed.</p>
         </div>
 
       </div>
 
-      <button id="startBtn" class="btn btn-primary">▶ Start Game</button>
+      <button id="startBtn" class="btn btn-primary" data-i18n="startGame">▶ Start Game</button>
     </section>
 
     <!-- ═══════════════ GAME SCREEN ═══════════════ -->
     <section id="gameScreen" class="screen">
       <header class="game-header">
-        <button id="menuBtn" class="btn btn-ghost" title="Back to menu">← Menu</button>
+        <button id="menuBtn" class="btn btn-ghost" data-i18n="menu" data-i18n-title="backToMenu">← Menu</button>
         <div class="game-title">
           <h2 id="gameModeTitle">Classic 9x9</h2>
           <span id="gameBadge" class="badge">Medium</span>
         </div>
-        <button id="newGameBtn" class="btn btn-ghost" title="Start a new game">↻ New</button>
+        <button id="newGameBtn" class="btn btn-ghost" data-i18n="newGame" data-i18n-title="newGameTitle">↻ New</button>
       </header>
 
-      <div id="seedBar" class="seed-bar" hidden>Seed: <span id="seedValue"></span></div>
+      <div id="seedBar" class="seed-bar" hidden><span data-i18n="seedLabel">Seed: </span><span id="seedValue"></span></div>
 
       <div class="game-info">
         <div class="stat stat--lives">
           <div>
-            <span class="stat-label">Lives</span>
+            <span class="stat-label" data-i18n="lives">Lives</span>
             <span id="lives" class="stat-value">❤️❤️❤️</span>
           </div>
         </div>
 
         <div class="current-piece">
-          <span class="piece-label">Current Piece</span>
+          <span class="piece-label" data-i18n="currentPiece">Current Piece</span>
           <div id="currentPieceDisplay" class="piece-display">-</div>
           <div id="specialPieceInfo" class="special-piece-info" hidden>
             <span id="specialPieceName" class="special-piece-name"></span><span id="specialPieceDesc" class="special-piece-desc"></span>
@@ -92,13 +99,13 @@
             <span>⏱</span>
             <span id="pieceTimerValue">--:--</span>
           </div>
-          <div id="hintsPill" class="hints-pill" hidden>💡 Hints: <span id="hintsCount">0</span></div>
+          <div id="hintsPill" class="hints-pill" hidden><span data-i18n="hintsLabel">💡 Hints: </span><span id="hintsCount">0</span></div>
         </div>
 
         <div class="stat stat--timer">
           <span class="stat-icon">⏱</span>
           <div>
-            <span class="stat-label">Time</span>
+            <span class="stat-label" data-i18n="time">Time</span>
             <span id="timer" class="stat-value">00:00</span>
           </div>
         </div>
@@ -107,8 +114,8 @@
       <div id="board" class="board"></div>
 
       <div class="controls">
-        <button id="hintBtn" class="btn btn-secondary">💡 Hint</button>
-        <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
+        <button id="hintBtn" class="btn btn-secondary" data-i18n="hint">💡 Hint</button>
+        <button id="resetBtn" class="btn btn-secondary" data-i18n="reset">🔄 Reset</button>
       </div>
 
       <div id="message" class="message"></div>
@@ -118,35 +125,38 @@
   <!-- Win summary modal -->
   <div id="winModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="winTitle" hidden>
     <div class="modal">
-      <h2 id="winTitle" class="modal-title">🎉 You Win!</h2>
+      <h2 id="winTitle" class="modal-title" data-i18n="youWin">🎉 You Win!</h2>
       <div class="win-stats">
         <div class="win-stat">
-          <span class="win-stat-label">Time</span>
+          <span class="win-stat-label" data-i18n="time">Time</span>
           <span id="winTime" class="win-stat-value">00:00</span>
         </div>
         <div class="win-stat">
-          <span class="win-stat-label">Lives</span>
+          <span class="win-stat-label" data-i18n="lives">Lives</span>
           <span id="winLives" class="win-stat-value">❤️❤️❤️</span>
         </div>
         <div class="win-stat">
-          <span class="win-stat-label">Errors</span>
+          <span class="win-stat-label" data-i18n="errors">Errors</span>
           <span id="winErrors" class="win-stat-value">0</span>
         </div>
       </div>
       <div id="winMessage" class="win-message"></div>
       <div class="modal-actions">
-        <button id="winPlayAgainBtn" class="btn btn-primary">▶ Play Again</button>
-        <button id="winMenuBtn" class="btn btn-ghost">← Menu</button>
+        <button id="winPlayAgainBtn" class="btn btn-primary" data-i18n="playAgain">▶ Play Again</button>
+        <button id="winMenuBtn" class="btn btn-ghost" data-i18n="menu">← Menu</button>
       </div>
     </div>
   </div>
 
-  <script src="js/config.js?v=1.8"></script>
-  <script src="js/state.js?v=1.8"></script>
-  <script src="js/dom.js?v=1.8"></script>
-  <script src="js/seeded.js?v=1.8"></script>
-  <script src="js/puzzle.js?v=1.8"></script>
-  <script src="js/game.js?v=1.8"></script>
-  <script src="js/ui.js?v=1.8"></script>
+  <script src="js/translations.js?v=2.3"></script>
+  <script src="js/i18n.js?v=2.3"></script>
+  <script src="js/config.js?v=2.3"></script>
+  <script src="js/state.js?v=2.3"></script>
+  <script src="js/dom.js?v=2.3"></script>
+  <script src="js/seeded.js?v=2.3"></script>
+  <script src="js/puzzle.js?v=2.3"></script>
+  <script src="js/game.js?v=2.3"></script>
+  <script src="js/audio.js?v=2.3"></script>
+  <script src="js/ui.js?v=2.3"></script>
 </body>
 </html>
