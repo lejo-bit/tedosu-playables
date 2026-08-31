@@ -384,7 +384,7 @@ function showMessage(text, type) {
 // Opens / closes the settings popover. Pass true/false to force a state;
 // without an argument it toggles (tap the gear to open, tap again to close).
 function toggleSettings(force) {
-  const open = force !== undefined ? force : settingsPanel.hidden;
+  const open = typeof force === 'boolean' ? force : settingsPanel.hidden;
   settingsPanel.hidden = !open;
   settingsBtn.classList.toggle('open', open);
   if (settingsBtn.setAttribute) {
@@ -430,7 +430,7 @@ difficultySelect.addEventListener('change', () => {
   updateDifficultyDescription();
   updateControls();
 });
-settingsBtn.addEventListener('click', toggleSettings);
+settingsBtn.addEventListener('click', () => toggleSettings());
 // Language buttons select a language directly (one tap - no cycling).
 langEnBtn.addEventListener('click', () => { setLanguage('en'); playSfx('click'); });
 langDeBtn.addEventListener('click', () => { setLanguage('de'); playSfx('click'); });
