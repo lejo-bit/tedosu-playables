@@ -16,6 +16,7 @@ function goToMenu() {
   }
   stopPieceTimer();
   stopAutoPieceTimer();
+  stopReveal();
   gameState.badLuckLeft = 0;
   pieceTimerWrapEl.hidden = true;
   pieceTimerWrapEl.classList.remove('crazy', 'urgent');
@@ -35,6 +36,7 @@ function goToMenu() {
 
 // Draws the board (fixed cells, filled cells, and empty clickable cells).
 function renderBoard() {
+  stopReveal(); // a re-render drops any in-progress Spy reveal cleanly
   boardEl.innerHTML = '';
   const size = gameState.mode.size;
   const boxRows = gameState.mode.boxRows;
@@ -43,6 +45,13 @@ function renderBoard() {
   boardEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
   boardEl.style.maxWidth = `${size * (gameState.mode.cellSize || 52) * BOARD_SIZE_SCALE}px`;
   boardEl.style.width = '100%';
+  boardEl.style.gridAutoRows = '1fr'; // square cells even on iOS WebKit
+  // Fallback for browsers without aspect-ratio: give cells an explicit height
+  if (typeof CSS !== 'undefined' && CSS.supports && !CSS.supports('aspect-ratio', '1 / 1')) {
+    const boardW = boardEl.clientWidth || parseInt(boardEl.style.maxWidth, 10) || 0;
+    const cellH = Math.max(20, Math.floor((boardW - 12) / size));
+    for (const cellEl of boardEl.children) cellEl.style.height = `${cellH}px`;
+  }
 
   for (let row = 0; row < size; row++) {
     for (let col = 0; col < size; col++) {

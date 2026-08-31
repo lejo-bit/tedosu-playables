@@ -33,6 +33,7 @@ body {
   font-family: 'Outfit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, var(--bg-1), var(--bg-2), var(--bg-3));
   min-height: 100vh;
+  min-height: 100dvh; /* iOS Safari: dynamic viewport (ignores hidden toolbar) */
   padding: 14px 12px;
   color: var(--text);
   overflow-x: hidden;
@@ -41,6 +42,7 @@ body {
 /* Animated aurora background */
 .bg {
   position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
   inset: 0;
   z-index: -1;
   overflow: hidden;
@@ -49,7 +51,7 @@ body {
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(60px);
   opacity: 0.5;
   animation: float 18s ease-in-out infinite;
 }
@@ -544,6 +546,7 @@ body {
 /* Board */
 .board {
   display: grid;
+  grid-auto-rows: 1fr; /* equal rows -> square cells on iOS WebKit too */
   gap: 2px;
   margin: 0 auto;
   padding: 6px;
@@ -555,6 +558,7 @@ body {
 
 .cell {
   position: relative;
+  min-width: 0; /* prevent WebKit grid overflow on iOS */
   aspect-ratio: 1;
   display: flex;
   align-items: center;
@@ -578,25 +582,17 @@ body {
 
 .cell.error { background: rgba(255, 82, 112, 0.3); color: #c12c50; animation: shake 0.4s; }
 
-/* Reveal (2.png): cells get an inline pastel-rainbow tint from revealNeighbors;
-   this class only bolds the number and drives the fade-out */
+/* Reveal (2.png): cells get an inline greyish-orange tint + a JS-driven fade
+   (revealNeighbors); this class only bolds the number */
 .cell.reveal {
   font-weight: 700;
-}
-
-.cell.reveal-fade {
-  animation: revealFade 5s ease-in-out forwards;
-}
-
-@keyframes revealFade {
-  0%, 20% { opacity: 1; }
-  100% { opacity: 0; }
 }
 
 /* Joker (1.png): expanding ripple around the cell when it is filled */
 .cell.cell-wave::after {
   content: '';
   position: absolute;
+  top: -2px; right: -2px; bottom: -2px; left: -2px;
   inset: -2px;
   border-radius: 8px;
   border: 3px solid var(--accent-2);
@@ -677,6 +673,7 @@ body {
 /* Win summary modal */
 .modal-overlay {
   position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
   inset: 0;
   z-index: 50;
   display: none;

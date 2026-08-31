@@ -347,8 +347,8 @@ const testCode = `
   handleCellClick(2, 3);
   __results.jokerFilled = gameState.board[2][3] === gameState.solution[2][3];
 
-  // M4: reveal shows the clicked cell + every cell within 2 fields (grey),
-  // then reverts after the fade animation.
+  // M4: reveal shows the clicked cell + every cell within 2 fields in a muted
+  // greyish-orange, holds 1s, fades out over the next 4s, then cleans up.
   gameState.mode = GAME_MODES['classic-9'];
   gameState.solution = generateSolution(9, 3, 3);
   gameState.puzzle = gameState.solution.map(r => r.map(() => null));
@@ -357,17 +357,51 @@ const testCode = `
   gameState.lives = 3;
   gameState.errors = 0;
   renderBoard();
+  __clock = 0;
   revealNeighbors(4, 4);
   const revIdx = (r, c) => r * 9 + c;
   __results.revealClass = boardEl.children[revIdx(3, 3)].classList.contains('reveal'); // expect true
   __results.revealClass2 = boardEl.children[revIdx(2, 2)].classList.contains('reveal'); // radius-2 cell - expect true
-  __results.revealFade = boardEl.children[revIdx(3, 3)].classList.contains('reveal-fade'); // expect true
-  __results.revealRainbow = boardEl.children[revIdx(3, 3)].style.background.startsWith('hsl('); // expect true (pastel rainbow tint)
+  __results.revealTint = boardEl.children[revIdx(3, 3)].style.background.startsWith('hsl('); // expect true (greyish-orange tint)
   __results.revealText = boardEl.children[revIdx(3, 3)].textContent === String(gameState.solution[3][3]);
-  const revealTimer = __timers[__timers.length - 1];
-  revealTimer.fn();
+  // First fade step at t=0 -> full opacity; mid-fade at ~3s -> partially transparent
+  __timers[__timers.length - 1].fn();
+  __results.revealFullOpacity = boardEl.children[revIdx(3, 3)].style.opacity === '1'; // expect true
+  __clock = 3000;
+  __timers[__timers.length - 1].fn();
+  const midOpacity = parseFloat(boardEl.children[revIdx(3, 3)].style.opacity);
+  __results.revealMidFade = midOpacity > 0 && midOpacity < 1; // expect true
+  // Drive the fade to completion
+  let revealGuard = 0;
+  while (gameState.revealTimeout !== null && revealGuard++ < 300) {
+    __clock += 60;
+    __timers[__timers.length - 1].fn();
+  }
+  __results.revealFaded = revealGuard > 1; // expect true
   __results.revealReverted = boardEl.children[revIdx(3, 3)].textContent === '';
-  __results.revealCleared = boardEl.children[revIdx(3, 3)].style.background === ''; // expect true
+  __results.revealCleared = !boardEl.children[revIdx(3, 3)].style.background; // expect true (unset/cleared)
+  __results.revealOpacityCleared = !boardEl.children[revIdx(3, 3)].style.opacity; // expect true (unset/cleared)
+  __results.revealClassesCleared = !boardEl.children[revIdx(3, 3)].classList.contains('reveal'); // expect true
+  __results.revealTimeoutCleared = gameState.revealTimeout === null; // expect true
+
+  // A re-render mid-reveal cancels the fade and leaves the new cells clean.
+  gameState.mode = GAME_MODES['classic-9'];
+  gameState.solution = generateSolution(9, 3, 3);
+  gameState.puzzle = gameState.solution.map(r => r.map(() => null));
+  gameState.board = gameState.puzzle.map(r => [...r]);
+  gameState.gameActive = true;
+  gameState.lives = 3;
+  gameState.errors = 0;
+  gameState.hints = 0;
+  renderBoard();
+  revealNeighbors(4, 4);
+  __results.revealTimerScheduled = gameState.revealTimeout !== null; // expect true
+  renderBoard(); // re-render mid-reveal -> fade cancelled + cells cleared
+  __results.revealStoppedOnRender = gameState.revealTimeout === null; // expect true
+  __results.revealCurrentClean =
+    !boardEl.children[4 * 9 + 4].classList.contains('reveal') &&
+    !boardEl.children[4 * 9 + 4].style.background && // unset/cleared (browser: ''; stub: undefined)
+    boardEl.children[4 * 9 + 4].textContent === ''; // expect true
 
   // M5: Loki (3.png) is an auto piece - clicks are ignored, and 3 seconds
   // later it auto-grants one extra life.
@@ -407,7 +441,7 @@ const testCode = `
   startAutoPieceTimer(gameState.currentPiece);
   const dayaTimer = __timers[__timers.length - 1]; // 3s auto-resolve timeout
   dayaTimer.fn();
-  __results.badLuckLeft = gameState.badLuckLeft; // expect 60
+  __results.badLuckLeft = gameState.badLuckLeft; // expect 30
 
   // M7: bad luck makes the piece timer tick 4x faster; normal otherwise.
   gameState.badLuckLeft = 60;
@@ -556,7 +590,8 @@ console.log('TEST L (random cat logo):');
 console.log('  invariants ok (valid cat + matching name over 30 runs): ' + r.logoOk);
 console.log('TEST M (special pieces):');
 console.log('  pick ok: ' + r.specialPickOk + ', special rolled (forced): ' + r.specialRolled + ', key: ' + r.specialKey);
-console.log('  joker fills correct: ' + r.jokerFilled + ', reveal class: ' + r.revealClass + ', radius-2 class: ' + r.revealClass2 + ', fade class: ' + r.revealFade + ', rainbow tint: ' + r.revealRainbow + ', reverted: ' + r.revealReverted + ', style cleared: ' + r.revealCleared);
+console.log('  joker fills correct: ' + r.jokerFilled + ', reveal class: ' + r.revealClass + ', radius-2 class: ' + r.revealClass2 + ', tint: ' + r.revealTint + ', full opacity: ' + r.revealFullOpacity + ', mid-fade: ' + r.revealMidFade + ', reverted: ' + r.revealReverted + ', style cleared: ' + r.revealCleared + ', opacity cleared: ' + r.revealOpacityCleared + ', classes cleared: ' + r.revealClassesCleared);
+console.log('  reveal timer scheduled: ' + r.revealTimerScheduled + ', stopped on re-render: ' + r.revealStoppedOnRender + ', current cells clean: ' + r.revealCurrentClean);
 console.log('  loki lives after auto-resolve: ' + r.shieldLives + ', auto click ignored: ' + r.autoClickIgnored);
 console.log('  daya bad-luck seconds: ' + r.badLuckLeft + ', click ignored: ' + r.dayaClickIgnored);
 console.log('  bad-luck tick: ' + r.badLuckTick + ' (expect 96), normal tick: ' + r.normalTick + ' (expect 99), bad-luck left: ' + r.badLuckRemaining);

@@ -6,7 +6,7 @@ Tedosu is a browser puzzle game that mixes classic Sudoku with a Tetris-inspired
 
 No build step, no dependencies, no server required — just open `index.html` and play.
 
-![Version](https://img.shields.io/badge/version-1.3-important)
+![Version](https://img.shields.io/badge/version-1.8-important)
 
 ---
 
@@ -44,7 +44,7 @@ Every mode follows the same rule: each row, each column, and each box must conta
 4. **Beat the per-piece timer** (Classic and Hex modes). Let a piece time out and you lose a life.
 5. **Fill every cell correctly** before your hearts run out to win. Your best completion time per mode is remembered.
 
-A **Hint** button flashes one legal spot for the current piece. In Kids mode hints are free on Easy; in Classic and Hex modes you spend Bonus-Hint pieces to use it.
+A **Hint** button flashes one legal spot for the current piece. It's available in Kids mode (Easy only); in Classic and Hex modes it stays hidden, since no piece grants hint uses anymore.
 
 ---
 
@@ -55,9 +55,9 @@ In Classic 9×9 and Hex 16×16 games, a dealt piece can occasionally be one of f
 | Piece | Weight | Effect |
 |-------|--------|--------|
 | **Chu-Chu — Joker** 😼 (`1.png`) | 35% | Click a cell: fills it with its correct value, sending a ripple **wave** across the board |
-| **Ymil — Spy** 🕵️ (`2.png`) | 35% | Click a cell: it and every cell within 2 fields light up in **pastel-rainbow colors** for 1 second, then slowly fade out over the next 4 seconds |
+| **Ymil — Spy** 🕵️ (`2.png`) | 35% | Click a cell: it and every cell within 2 fields light up in a muted **greyish-orange** for 1 second, then slowly fade out over the next 4 seconds |
 | **Loki — Extra life!** ❤️ (`3.png`) | 15% | Auto piece: no click needed — after 3 seconds it grants **+1 life** with a floating-heart pop (it can push you past 3 hearts) |
-| **Daya — Bad luck!** ☠️ (`4.png`) | 15% | Auto piece: after 3 seconds the piece timer runs **4× faster for 60 seconds** — the timer pill shakes and shows ×4 while it lasts |
+| **Daya — Bad luck!** ☠️ (`4.png`) | 15% | Auto piece: after 3 seconds the piece timer runs **4× faster for 30 seconds** — the timer pill shakes and shows ×4 while it lasts |
 
 A **pity system** keeps things fair: after every non-special piece the odds of a special piece rise, and one is guaranteed within the difficulty's pity cap.
 
@@ -111,6 +111,8 @@ npx serve .
 ```
 
 Then visit `http://localhost:8000`.
+
+Works in current **Chrome, Edge, Firefox, and Safari** (macOS 12+ / iOS 15+; iOS uses the dynamic viewport height so the layout fits the visible screen).
 
 ---
 

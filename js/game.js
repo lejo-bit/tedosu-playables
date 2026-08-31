@@ -16,6 +16,7 @@ function startNewGame(opts = {}) {
     clearInterval(gameState.timerInterval);
   }
   stopPieceTimer();
+  stopReveal();
 
   // Get settings
   const modeKey = gameModeSelect.value;
@@ -239,10 +240,12 @@ function applySpecialPiece(piece, row, col) {
   nextPiece();
 }
 
-// Flashes the clicked cell and every cell within 2 fields of it. Each cell is
-// tinted a light pastel-rainbow hue (radiating from the click), stays fully
-// visible for 1 second, then slowly fades out over the next 4 seconds.
+// Flashes the clicked cell and every cell within 2 fields of it, tinted a
+// muted greyish-orange. They stay fully visible for 1 second, then slowly
+// fade out over the next 4 seconds. The fade is JS-driven so it works in
+// every browser, including with reduced-motion preferences enabled.
 function revealNeighbors(row, col) {
+  stopReveal(); // cancel any previous reveal first
   const size = gameState.mode.size;
   const revealed = [];
   for (let r = row - 2; r <= row + 2; r++) {
@@ -251,27 +254,66 @@ function revealNeighbors(row, col) {
       if (gameState.board[r][c] !== null) continue; // already filled
       const cell = boardEl.children[r * size + c];
       if (!cell) continue;
-      // Pastel rainbow: hue comes from the angle + distance around the click
-      const dr = r - row, dc = c - col;
-      const angle = Math.atan2(dr, dc);
-      const dist = Math.sqrt(dr * dr + dc * dc);
-      const hue = Math.round((((angle + Math.PI) / (Math.PI * 2)) * 360 + dist * 55) % 360);
       cell.textContent = getValueDisplay(gameState.solution[r][c]);
-      cell.style.background = `hsl(${hue}, 80%, 88%)`; // light pastel fill
-      cell.style.color = `hsl(${hue}, 65%, 40%)`;      // matching darker number
-      cell.classList.add('reveal', 'reveal-fade');
-      revealed.push({ cell, row: r, col: c });
+      cell.style.background = 'hsl(25, 40%, 72%)'; // muted greyish-orange fill
+      cell.style.color = 'hsl(25, 38%, 38%)';      // darker orange-brown number
+      cell.classList.add('reveal');
+      revealed.push(cell);
     }
   }
-  // Revert after 5.2s (held for 1s, faded to 0 by 5s).
-  setTimeout(() => {
-    for (const { cell, row: rr, col: cc } of revealed) {
-      cell.classList.remove('reveal', 'reveal-fade');
+
+  gameState.activeRevealCells = revealed;
+  const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  const start = now();
+  const HOLD_MS = 1000; // fully visible for 1 second
+  const FADE_MS = 4000; // then fade to 0 over the next 4 seconds
+  const TOTAL_MS = HOLD_MS + FADE_MS;
+
+  const step = () => {
+    const elapsed = now() - start;
+    let opacity = 1;
+    if (elapsed > HOLD_MS) {
+      opacity = Math.max(0, 1 - (elapsed - HOLD_MS) / FADE_MS);
+    }
+    for (const cell of revealed) {
+      cell.style.opacity = String(opacity);
+    }
+    if (elapsed < TOTAL_MS) {
+      gameState.revealTimeout = setTimeout(step, 50);
+      return;
+    }
+    // Fade finished - clean up completely
+    gameState.revealTimeout = null;
+    gameState.activeRevealCells = [];
+    for (const cell of revealed) {
+      cell.classList.remove('reveal');
       cell.style.background = '';
       cell.style.color = '';
-      if (gameState.board[rr][cc] === null) cell.textContent = '';
+      cell.style.opacity = '';
+      cell.textContent = '';
     }
-  }, 5200);
+  };
+  gameState.revealTimeout = setTimeout(step, 50);
+}
+
+// Cancels a pending Spy reveal (new game, menu, re-render, game over) and
+// clears any revealed cells immediately.
+function stopReveal() {
+  if (gameState.revealTimeout) {
+    clearTimeout(gameState.revealTimeout);
+    gameState.revealTimeout = null;
+  }
+  const cells = gameState.activeRevealCells;
+  if (cells && cells.length) {
+    for (const cell of cells) {
+      cell.classList.remove('reveal');
+      cell.style.background = '';
+      cell.style.color = '';
+      cell.style.opacity = '';
+      cell.textContent = '';
+    }
+    gameState.activeRevealCells = [];
+  }
 }
 
 // Checks whether the whole board is a valid Sudoku (rows, columns, boxes).
@@ -329,6 +371,7 @@ function endGame(won) {
   }
   stopPieceTimer();
   stopAutoPieceTimer();
+  stopReveal();
   gameState.badLuckLeft = 0;
   pieceTimerWrapEl.classList.remove('crazy', 'urgent');
 
@@ -463,7 +506,7 @@ function startPieceTimer() {
 }
 
 // One second of the per-piece countdown. While Daya's bad luck is active the
-// timer ticks 4x faster for 60 real seconds.
+// timer ticks 4x faster for 30 real seconds.
 function pieceTimerTick() {
   const crazy = gameState.badLuckLeft > 0;
   gameState.pieceTimeLeft -= crazy ? 4 : 1;
@@ -523,9 +566,9 @@ function applyAutoPiece(piece) {
     setTimeout(() => livesEl.classList.remove('lives-pop'), 750);
     showMessage('Extra life! +1 heart ❤️', 'success');
   } else if (piece.key === 'hints') {
-    // Daya - Bad luck: the piece timer runs 4x faster for 60 seconds.
-    gameState.badLuckLeft = 60;
-    showMessage('Bad luck! The timer runs 4x faster for 60 seconds!', 'error');
+    // Daya - Bad luck: the piece timer runs 4x faster for 30 seconds.
+    gameState.badLuckLeft = 30;
+    showMessage('Bad luck! The timer runs 4x faster for 30 seconds!', 'error');
   }
   nextPiece();
 }

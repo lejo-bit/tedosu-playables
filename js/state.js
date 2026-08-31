@@ -19,6 +19,8 @@ let gameState = {
   hints: 0,            // hint uses (Kids Easy hints are free; no piece grants hints anymore)
   badLuckLeft: 0,      // real seconds left of the 4x-faster piece timer (Daya)
   autoPieceTimeout: null, // handle for auto-resolving special pieces (Loki / Daya)
+  revealTimeout: null,    // handle for the Spy reveal fade loop
+  activeRevealCells: [],  // cells currently shown by the Spy reveal
   sinceSpecial: 0,     // consecutive non-special pieces dealt (special-piece pity)
   errors: 0,           // total wrong clicks
   gameActive: false
