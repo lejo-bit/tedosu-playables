@@ -582,7 +582,7 @@ body {
 
 .cell.error { background: rgba(255, 82, 112, 0.3); color: #c12c50; animation: shake 0.4s; }
 
-/* Reveal (2.png): cells get an inline greyish-orange tint + a JS-driven fade
+/* Reveal (2.png): cells get an inline warm-orange tint + a JS-driven fade
    (revealNeighbors); this class only bolds the number */
 .cell.reveal {
   font-weight: 700;

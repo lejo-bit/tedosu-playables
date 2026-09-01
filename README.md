@@ -57,7 +57,7 @@ In Classic 9×9 and Hex 16×16 games, a dealt piece can occasionally be one of f
 | Piece | Weight | Effect |
 |-------|--------|--------|
 | **Chu-Chu — Joker** 😼 (`1.png`) | 35% | Click a cell: fills it with its correct value, sending a ripple **wave** across the board |
-| **Ymil — Spy** 🕵️ (`2.png`) | 35% | Click a cell: it and every cell within 2 fields light up in a muted **greyish-orange** for 1 second, then slowly fade out over the next 4 seconds |
+| **Ymil — Spy** 🕵️ (`2.png`) | 35% | Click a cell: it and every cell within 2 fields light up in a warm **orange** for 1 second, then slowly fade out over the next 4 seconds |
 | **Loki — Extra life!** ❤️ (`3.png`) | 15% | Auto piece: no click needed — after 3 seconds it grants **+1 life** with a floating-heart pop (it can push you past 3 hearts) |
 | **Daya — Bad luck!** ☠️ (`4.png`) | 15% | Auto piece: after 3 seconds the piece timer runs **4× faster for 30 seconds** — the timer pill shakes and shows ×4 while it lasts |
 

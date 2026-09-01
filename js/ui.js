@@ -36,7 +36,6 @@ function goToMenu() {
 
 // Draws the board (fixed cells, filled cells, and empty clickable cells).
 function renderBoard() {
-  stopReveal(); // a re-render drops any in-progress Spy reveal cleanly
   boardEl.innerHTML = '';
   const size = gameState.mode.size;
   const boxRows = gameState.mode.boxRows;
@@ -86,6 +85,11 @@ function renderBoard() {
       boardEl.appendChild(cell);
     }
   }
+
+  // Re-apply any in-progress Spy reveal to the fresh cells instead of
+  // cancelling it: the effect lasts the full 5 seconds even when the next
+  // tile is placed mid-reveal.
+  if (gameState.revealCells && gameState.revealCells.length) applyReveal();
 }
 
 // Game-start entrance: the board cells appear staggered with a zoom-in pop.

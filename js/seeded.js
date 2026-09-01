@@ -104,8 +104,12 @@ class SeededSudokuGenerator {
     return true;
   }
 
-  // Recursive backtracking fill using the seeded shuffle for variety.
-  fillGrid() {
+  // Recursive backtracking fill using the seeded shuffle for variety. The
+  // optional `budget` bounds the total work so a pathological seeded shuffle
+  // order can never freeze the game - it fails fast and buildSolution retries
+  // (or falls back to a guaranteed-valid pattern).
+  fillGrid(budget) {
+    if (budget && ++budget.steps > budget.max) return false;
     const size = this.size;
     const baseValues = Array.from({ length: size }, (_, i) => i + 1);
     for (let row = 0; row < size; row++) {
@@ -115,8 +119,9 @@ class SeededSudokuGenerator {
           for (const num of numbers) {
             if (this.isValid(row, col, num)) {
               this.grid[row][col] = num;
-              if (this.fillGrid()) return true;
+              if (this.fillGrid(budget)) return true;
               this.grid[row][col] = 0;
+              if (budget && budget.steps > budget.max) return false;
             }
           }
           return false;
@@ -126,8 +131,14 @@ class SeededSudokuGenerator {
     return true;
   }
 
-  // Counts solutions (early exit once more than one is found).
-  countSolutions(solutionsState = { count: 0 }) {
+  // Counts solutions (early exit once more than one is found). The optional
+  // `budget` bounds the work; on overflow it flags the budget and reports
+  // "ambiguous" (2) so the caller keeps the clue instead of freezing.
+  countSolutions(solutionsState = { count: 0 }, budget) {
+    if (budget && ++budget.steps > budget.max) {
+      budget.overflow = true;
+      return 2;
+    }
     const size = this.size;
     for (let row = 0; row < size; row++) {
       for (let col = 0; col < size; col++) {
@@ -135,9 +146,13 @@ class SeededSudokuGenerator {
           for (let num = 1; num <= size; num++) {
             if (this.isValid(row, col, num)) {
               this.grid[row][col] = num;
-              this.countSolutions(solutionsState);
+              this.countSolutions(solutionsState, budget);
               this.grid[row][col] = 0;
               if (solutionsState.count > 1) return 2;
+              if (budget && budget.steps > budget.max) {
+                budget.overflow = true;
+                return 2;
+              }
             }
           }
           return solutionsState.count;
@@ -146,6 +161,21 @@ class SeededSudokuGenerator {
     }
     solutionsState.count++;
     return solutionsState.count;
+  }
+
+  // A fixed valid Sudoku pattern (works for any box layout) used only as a
+  // last-resort fallback when the seeded backtracking cannot fill a grid.
+  canonicalSolution() {
+    const size = this.size;
+    const boxRows = this.boxRows;
+    const boxCols = this.boxCols;
+    const grid = Array.from({ length: size }, () => Array(size).fill(0));
+    for (let row = 0; row < size; row++) {
+      for (let col = 0; col < size; col++) {
+        grid[row][col] = ((row * boxCols + Math.floor(row / boxRows) + col) % size) + 1;
+      }
+    }
+    return grid;
   }
 
   // Removes cells until `difficultyClues` clues remain. With useUnique it
@@ -170,11 +200,13 @@ class SeededSudokuGenerator {
 
       if (useUnique) {
         const state = { count: 0 };
-        if (this.countSolutions(state) !== 1) {
+        const budget = { steps: 0, max: Math.max(30000, size * size * 400) };
+        if (this.countSolutions(state, budget) !== 1) {
           this.grid[row][col] = backup;
         } else {
           cluesRemoved++;
         }
+        if (budget.overflow) break; // pathological seed - keep the remaining clues
       } else {
         cluesRemoved++; // plain seeded removal (fast path for large grids)
       }
@@ -183,14 +215,18 @@ class SeededSudokuGenerator {
 
   // Resets and fills the grid; returns a deep copy of the complete solution.
   buildSolution() {
-    for (let attempt = 0; attempt < 10; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       this.grid = Array.from({ length: this.size }, () => Array(this.size).fill(0));
-      if (this.fillGrid() && this.isComplete()) {
+      const budget = { steps: 0, max: Math.max(30000, this.size * this.size * 400) };
+      if (this.fillGrid(budget) && this.isComplete()) {
         return this.grid.map(row => [...row]);
       }
     }
-    // Very unlikely fallback: return whatever was produced.
-    return this.grid.map(row => [...row]);
+    // Extremely unlikely fallback for pathological seeds: a guaranteed-valid
+    // pattern so the game can never freeze and the board stays playable.
+    const fallback = this.canonicalSolution();
+    this.grid = fallback.map(row => [...row]);
+    return fallback;
   }
 
   // Removes clues from the current grid; returns a deep copy.

@@ -247,79 +247,101 @@ function applySpecialPiece(piece, row, col) {
   nextPiece();
 }
 
-// Flashes the clicked cell and every cell within 2 fields of it, tinted a
-// muted greyish-orange. They stay fully visible for 1 second, then slowly
-// fade out over the next 4 seconds. The fade is JS-driven so it works in
-// every browser, including with reduced-motion preferences enabled.
+// Spy reveal (2.png): flashes the clicked cell and every cell within 2 fields
+// of it, tinted a warm orange. They stay fully visible for 1 second, then
+// slowly fade out over the next 4 seconds (5 seconds total). The reveal is
+// stored as data (coordinates + start time) rather than DOM references so it
+// survives board re-renders: placing the next tile must NOT cancel it - the
+// effect keeps fading for its full duration. The fade is JS-driven so it
+// works in every browser, including with reduced-motion preferences enabled.
+const REVEAL_HOLD_MS = 1000; // fully visible for 1 second
+const REVEAL_FADE_MS = 4000; // then fade to 0 over the next 4 seconds
+const REVEAL_TOTAL_MS = REVEAL_HOLD_MS + REVEAL_FADE_MS;
+const REVEAL_BG = 'hsl(28, 85%, 62%)'; // warm orange fill
+const REVEAL_FG = 'hsl(25, 78%, 28%)'; // darker orange-brown number
+
+const revealNow = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
 function revealNeighbors(row, col) {
   stopReveal(); // cancel any previous reveal first
   const size = gameState.mode.size;
-  const revealed = [];
+  gameState.revealCells = [];
   for (let r = row - 2; r <= row + 2; r++) {
     for (let c = col - 2; c <= col + 2; c++) {
       if (r < 0 || r >= size || c < 0 || c >= size) continue;
       if (gameState.board[r][c] !== null) continue; // already filled
-      const cell = boardEl.children[r * size + c];
-      if (!cell) continue;
-      cell.textContent = getValueDisplay(gameState.solution[r][c]);
-      cell.style.background = 'hsl(25, 40%, 72%)'; // muted greyish-orange fill
-      cell.style.color = 'hsl(25, 38%, 38%)';      // darker orange-brown number
-      cell.classList.add('reveal');
-      revealed.push(cell);
+      gameState.revealCells.push({ row: r, col: c });
     }
   }
-
-  gameState.activeRevealCells = revealed;
-  const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-  const start = now();
-  const HOLD_MS = 1000; // fully visible for 1 second
-  const FADE_MS = 4000; // then fade to 0 over the next 4 seconds
-  const TOTAL_MS = HOLD_MS + FADE_MS;
-
-  const step = () => {
-    const elapsed = now() - start;
-    let opacity = 1;
-    if (elapsed > HOLD_MS) {
-      opacity = Math.max(0, 1 - (elapsed - HOLD_MS) / FADE_MS);
-    }
-    for (const cell of revealed) {
-      cell.style.opacity = String(opacity);
-    }
-    if (elapsed < TOTAL_MS) {
-      gameState.revealTimeout = setTimeout(step, 50);
-      return;
-    }
-    // Fade finished - clean up completely
-    gameState.revealTimeout = null;
-    gameState.activeRevealCells = [];
-    for (const cell of revealed) {
-      cell.classList.remove('reveal');
-      cell.style.background = '';
-      cell.style.color = '';
-      cell.style.opacity = '';
-      cell.textContent = '';
-    }
-  };
-  gameState.revealTimeout = setTimeout(step, 50);
+  gameState.revealStart = revealNow();
+  applyReveal();
+  gameState.revealTimeout = setTimeout(revealStep, 50);
 }
 
-// Cancels a pending Spy reveal (new game, menu, re-render, game over) and
-// clears any revealed cells immediately.
+// Current opacity (0..1) of the in-progress Spy reveal, based on elapsed time.
+function currentRevealOpacity() {
+  const elapsed = revealNow() - gameState.revealStart;
+  if (elapsed <= REVEAL_HOLD_MS) return 1;
+  return Math.max(0, 1 - (elapsed - REVEAL_HOLD_MS) / REVEAL_FADE_MS);
+}
+
+// Re-applies the reveal to the current board cells. Safe to call after a
+// re-render (cells may have been recreated). Cells that were filled since the
+// reveal started keep their normal filled look and are skipped.
+function applyReveal() {
+  if (!gameState.revealCells.length) return;
+  const size = gameState.mode.size;
+  const opacity = currentRevealOpacity();
+  for (const { row, col } of gameState.revealCells) {
+    if (gameState.board[row][col] !== null) continue; // filled since reveal
+    const cell = boardEl.children[row * size + col];
+    if (!cell) continue;
+    cell.textContent = getValueDisplay(gameState.solution[row][col]);
+    cell.style.background = REVEAL_BG;
+    cell.style.color = REVEAL_FG;
+    cell.classList.add('reveal');
+    cell.style.opacity = String(opacity);
+  }
+}
+
+function revealStep() {
+  if (revealNow() - gameState.revealStart < REVEAL_TOTAL_MS) {
+    applyReveal();
+    gameState.revealTimeout = setTimeout(revealStep, 50);
+    return;
+  }
+  // Fade finished - clean up completely
+  gameState.revealTimeout = null;
+  clearRevealCells();
+}
+
+// Removes the reveal styling from every still-empty revealed cell. Cells that
+// were filled during the reveal are left untouched (they keep their normal
+// filled look).
+function clearRevealCells() {
+  const size = gameState.mode.size;
+  for (const { row, col } of gameState.revealCells) {
+    if (gameState.board[row][col] !== null) continue; // filled - leave alone
+    const cell = boardEl.children[row * size + col];
+    if (!cell) continue;
+    cell.classList.remove('reveal');
+    cell.style.background = '';
+    cell.style.color = '';
+    cell.style.opacity = '';
+    cell.textContent = '';
+  }
+  gameState.revealCells = [];
+}
+
+// Cancels a pending Spy reveal (new game, menu, game over) and clears any
+// revealed cells immediately.
 function stopReveal() {
   if (gameState.revealTimeout) {
     clearTimeout(gameState.revealTimeout);
     gameState.revealTimeout = null;
   }
-  const cells = gameState.activeRevealCells;
-  if (cells && cells.length) {
-    for (const cell of cells) {
-      cell.classList.remove('reveal');
-      cell.style.background = '';
-      cell.style.color = '';
-      cell.style.opacity = '';
-      cell.textContent = '';
-    }
-    gameState.activeRevealCells = [];
+  if (gameState.revealCells.length) {
+    clearRevealCells();
   }
 }
 
