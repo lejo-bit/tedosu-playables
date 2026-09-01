@@ -362,15 +362,33 @@ const testCode = `
   const revIdx = (r, c) => r * 9 + c;
   __results.revealClass = boardEl.children[revIdx(3, 3)].classList.contains('reveal'); // expect true
   __results.revealClass2 = boardEl.children[revIdx(2, 2)].classList.contains('reveal'); // radius-2 cell - expect true
-  __results.revealTint = boardEl.children[revIdx(3, 3)].style.background.startsWith('hsl('); // expect true (orange tint)
+  __results.revealTint = boardEl.children[revIdx(3, 3)].style.background.startsWith('rgba(241, 153, 76'); // expect true (warm orange fill)
   __results.revealText = boardEl.children[revIdx(3, 3)].textContent === String(gameState.solution[3][3]);
-  // First fade step at t=0 -> full opacity; mid-fade at ~3s -> partially transparent
+  // First fade step at t=0 -> fully visible (opaque orange fill + opaque number);
+  // mid-fade at ~3s -> fill blended toward white, number alpha fading out.
   __timers[__timers.length - 1].fn();
-  __results.revealFullOpacity = boardEl.children[revIdx(3, 3)].style.opacity === '1'; // expect true
+  __results.revealFullOpacity = boardEl.children[revIdx(3, 3)].style.color === 'hsla(25, 78%, 28%, 1)'; // expect true
   __clock = 3000;
   __timers[__timers.length - 1].fn();
-  const midOpacity = parseFloat(boardEl.children[revIdx(3, 3)].style.opacity);
-  __results.revealMidFade = midOpacity > 0 && midOpacity < 1; // expect true
+  const midBg = boardEl.children[revIdx(3, 3)].style.background;
+  const midColor = boardEl.children[revIdx(3, 3)].style.color;
+  __results.revealMidFade =
+    midBg !== 'rgba(241, 153, 76, 1)' &&
+    midBg !== 'rgba(255, 255, 255, 0.72)' &&
+    midColor.startsWith('hsla(25, 78%, 28%, ') &&
+    midColor !== 'hsla(25, 78%, 28%, 1)' &&
+    midColor !== 'hsla(25, 78%, 28%, 0)'; // expect true
+  // Near the very end the fill must still be near-white and opaque (alpha >= 0.7):
+  // the reveal blends into the board instead of flashing transparent.
+  __clock = 4900;
+  __timers[__timers.length - 1].fn();
+  const nearBg = boardEl.children[revIdx(3, 3)].style.background.slice(5, -1).split(', ');
+  __results.revealStaysOpaque =
+    nearBg.length === 4 &&
+    parseInt(nearBg[0]) >= 240 &&
+    parseInt(nearBg[1]) >= 240 &&
+    parseInt(nearBg[2]) >= 240 &&
+    parseFloat(nearBg[3]) >= 0.7; // expect true
   // Drive the fade to completion
   let revealGuard = 0;
   while (gameState.revealTimeout !== null && revealGuard++ < 300) {
@@ -380,7 +398,9 @@ const testCode = `
   __results.revealFaded = revealGuard > 1; // expect true
   __results.revealReverted = boardEl.children[revIdx(3, 3)].textContent === '';
   __results.revealCleared = !boardEl.children[revIdx(3, 3)].style.background; // expect true (unset/cleared)
-  __results.revealOpacityCleared = !boardEl.children[revIdx(3, 3)].style.opacity; // expect true (unset/cleared)
+  __results.revealOpacityCleared =
+    !boardEl.children[revIdx(3, 3)].style.background &&
+    !boardEl.children[revIdx(3, 3)].style.color; // expect true (unset/cleared)
   __results.revealClassesCleared = !boardEl.children[revIdx(3, 3)].classList.contains('reveal'); // expect true
   __results.revealTimeoutCleared = gameState.revealTimeout === null; // expect true
 
@@ -405,7 +425,7 @@ const testCode = `
     boardEl.children[4 * 9 + 4].classList.contains('reveal') &&
     !!boardEl.children[4 * 9 + 4].style.background &&
     boardEl.children[4 * 9 + 4].textContent === String(gameState.solution[4][4]) &&
-    boardEl.children[4 * 9 + 4].style.opacity === '1'; // expect true
+    boardEl.children[4 * 9 + 4].style.color === 'hsla(25, 78%, 28%, 1)'; // expect true
 
   // Filling a revealed cell mid-reveal keeps its normal filled look, while
   // the still-empty revealed cells keep the reveal until the 5 seconds end.
@@ -703,7 +723,7 @@ console.log('TEST L (random cat logo):');
 console.log('  invariants ok (valid cat + matching name over 30 runs): ' + r.logoOk);
 console.log('TEST M (special pieces):');
 console.log('  pick ok: ' + r.specialPickOk + ', special rolled (forced): ' + r.specialRolled + ', key: ' + r.specialKey);
-console.log('  joker fills correct: ' + r.jokerFilled + ', reveal class: ' + r.revealClass + ', radius-2 class: ' + r.revealClass2 + ', tint: ' + r.revealTint + ', full opacity: ' + r.revealFullOpacity + ', mid-fade: ' + r.revealMidFade + ', reverted: ' + r.revealReverted + ', style cleared: ' + r.revealCleared + ', opacity cleared: ' + r.revealOpacityCleared + ', classes cleared: ' + r.revealClassesCleared);
+console.log('  joker fills correct: ' + r.jokerFilled + ', reveal class: ' + r.revealClass + ', radius-2 class: ' + r.revealClass2 + ', tint: ' + r.revealTint + ', full opacity: ' + r.revealFullOpacity + ', mid-fade: ' + r.revealMidFade + ', stays opaque at end: ' + r.revealStaysOpaque + ', reverted: ' + r.revealReverted + ', style cleared: ' + r.revealCleared + ', opacity cleared: ' + r.revealOpacityCleared + ', classes cleared: ' + r.revealClassesCleared);
 console.log('  reveal timer scheduled: ' + r.revealTimerScheduled + ', keeps running on re-render: ' + r.revealKeepsRunningOnRender + ', re-applied to fresh cells: ' + r.revealReapplied + ', skips filled cells: ' + r.revealSkipsFilled + ', cleaned after 5s: ' + r.revealFinishedAfterRender);
 console.log('  loki lives after auto-resolve: ' + r.shieldLives + ', auto click ignored: ' + r.autoClickIgnored);
 console.log('  daya bad-luck seconds: ' + r.badLuckLeft + ', click ignored: ' + r.dayaClickIgnored);

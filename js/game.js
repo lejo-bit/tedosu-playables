@@ -255,10 +255,12 @@ function applySpecialPiece(piece, row, col) {
 // effect keeps fading for its full duration. The fade is JS-driven so it
 // works in every browser, including with reduced-motion preferences enabled.
 const REVEAL_HOLD_MS = 1000; // fully visible for 1 second
-const REVEAL_FADE_MS = 4000; // then fade to 0 over the next 4 seconds
+const REVEAL_FADE_MS = 4000; // then blend out over the next 4 seconds
 const REVEAL_TOTAL_MS = REVEAL_HOLD_MS + REVEAL_FADE_MS;
-const REVEAL_BG = 'hsl(28, 85%, 62%)'; // warm orange fill
-const REVEAL_FG = 'hsl(25, 78%, 28%)'; // darker orange-brown number
+// Fade endpoints: the warm orange fill rgb(241, 153, 76) blends toward the
+// normal empty-cell white rgba(255, 255, 255, 0.72), and the revealed number
+// fades out via its text-alpha. The cells stay fully opaque, so the effect
+// dissolves into the board instead of flashing transparent at the end.
 
 const revealNow = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
@@ -278,11 +280,14 @@ function revealNeighbors(row, col) {
   gameState.revealTimeout = setTimeout(revealStep, 50);
 }
 
-// Current opacity (0..1) of the in-progress Spy reveal, based on elapsed time.
-function currentRevealOpacity() {
+// Fade progress (0..1) of the Spy reveal: 0 while fully visible, rising to 1
+// over the 4-second fade. The cells never turn transparent - the fill blends
+// toward the normal cell background and the number fades out, so the effect
+// dissolves into the board instead of blinking at the end.
+function revealFadeProgress() {
   const elapsed = revealNow() - gameState.revealStart;
-  if (elapsed <= REVEAL_HOLD_MS) return 1;
-  return Math.max(0, 1 - (elapsed - REVEAL_HOLD_MS) / REVEAL_FADE_MS);
+  if (elapsed <= REVEAL_HOLD_MS) return 0;
+  return Math.min(1, (elapsed - REVEAL_HOLD_MS) / REVEAL_FADE_MS);
 }
 
 // Re-applies the reveal to the current board cells. Safe to call after a
@@ -291,16 +296,23 @@ function currentRevealOpacity() {
 function applyReveal() {
   if (!gameState.revealCells.length) return;
   const size = gameState.mode.size;
-  const opacity = currentRevealOpacity();
+  const p = revealFadeProgress();
+  // Blend the fill from warm orange rgb(241, 153, 76) to the normal
+  // empty-cell white rgba(255, 255, 255, 0.72), and fade the number out.
+  const r = Math.round(241 + (255 - 241) * p);
+  const g = Math.round(153 + (255 - 153) * p);
+  const b = Math.round(76 + (255 - 76) * p);
+  const a = 1 - 0.28 * p;
+  const bg = 'rgba(' + r + ', ' + g + ', ' + b + ', ' + a + ')';
+  const textAlpha = 1 - p;
   for (const { row, col } of gameState.revealCells) {
     if (gameState.board[row][col] !== null) continue; // filled since reveal
     const cell = boardEl.children[row * size + col];
     if (!cell) continue;
     cell.textContent = getValueDisplay(gameState.solution[row][col]);
-    cell.style.background = REVEAL_BG;
-    cell.style.color = REVEAL_FG;
+    cell.style.background = bg;
+    cell.style.color = 'hsla(25, 78%, 28%, ' + textAlpha + ')';
     cell.classList.add('reveal');
-    cell.style.opacity = String(opacity);
   }
 }
 
