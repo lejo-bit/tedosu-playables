@@ -828,6 +828,21 @@ body {
 
 .settings-toggle:last-child { margin-bottom: 0; }
 
+/* Bottom credits */
+.credits {
+  margin: 20px auto 8px;
+  max-width: 860px;
+  padding: 0 14px;
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+.credits a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 2px; }
+.credits a:hover { color: var(--accent-2); }
+.credits strong { color: var(--text); font-weight: 700; }
+
 /* Responsive */
 @media (max-width: 640px) {
   body { padding: 14px 10px; }

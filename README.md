@@ -6,7 +6,7 @@ Tedosu is a browser puzzle game that mixes classic Sudoku with a Tetris-inspired
 
 No build step, no dependencies, no server required — just open `index.html` and play.
 
-![Version](https://img.shields.io/badge/version-2.3-important)
+![Version](https://img.shields.io/badge/version-2.10.0-important)
 
 ---
 
@@ -15,7 +15,7 @@ No build step, no dependencies, no server required — just open `index.html` an
 - 🐱 **Three game modes** — Kids 4×4 (cat icons), Classic 9×9, and Hex 16×16 (digits `0`–`F`)
 - 🎚️ **Three difficulty levels** — each with its own per-piece timers, special-piece odds, and lives
 - 🌍 **Multilingual** — switch the whole game between **English, Deutsch, Polski, Español, Русский, Türkçe, Français, Norsk, and 中文** with the flag buttons (persisted)
-- 🎵 **Music & sound effects** — ambient music and event sounds with **two separate mute buttons** (music and SFX, each remembered)
+- 🎵 **Music & sound effects** — the background track "Moonsea" by Jelsonic while you solve with **two separate mute buttons** (music and SFX, each remembered)
 - 🎲 **Seeded puzzles** — every game is generated deterministically from a seed, so puzzles can be shared and replayed
 - 🧩 **Fair dealing** — you are only ever handed a piece that has at least one legal spot on the board, so the game never dead-ends
 - ⭐ **Special cat power-ups** — Chu-chu, Ymil, Loki, and Daya appear as surprise pieces in 9×9 and 16×16 games (two need a click, two auto-resolve)
@@ -139,7 +139,8 @@ tedoku/
 ├── docs/
 │   └── project.md          # Original project plan
 ├── assets/
-│   └── cats/               # Cat icon images (1.png – 4.png)
+│   ├── cats/               # Cat icon images (1.png – 4.png)
+│   └── music/              # Background music: "Moonsea" by Jelsonic (CC BY 4.0)
 ├── js/
 │   ├── translations.js     # All UI strings (English / Deutsch / Polski)
 │   ├── i18n.js             # Language switching logic (T / setLanguage / plural rules)
@@ -149,7 +150,7 @@ tedoku/
 │   ├── seeded.js           # 64-bit deterministic RNG + seeded Sudoku generator
 │   ├── puzzle.js           # Seeded puzzle generation (solution + playable puzzle)
 │   ├── game.js             # Core game logic (moves, lives, timers, specials, seeds)
-│   ├── audio.js            # Web Audio engine - ambient music + sound effects
+│   ├── audio.js            # Background music (mp3) + sound effects (Web Audio)
 │   └── ui.js               # Rendering, messages, picker descriptions, startup wiring
 └── test-game-logic.js      # Node test harness with DOM stubs
 ```
@@ -165,6 +166,16 @@ Scripts are loaded in the order above by `index.html` and share a single global 
 - **CSS Grid** — responsive board rendering
 - **Google Fonts** — Outfit typeface
 - **`localStorage`** — best-time persistence
+
+---
+
+## Credits
+
+Game by **Lejo**.
+
+Background music: **"Moonsea"** by **Jelsonic**, distributed via the
+[Free Music Archive](https://freemusicarchive.org/music/Jelsonic/Various_Moods/jelsonic-moonsea)
+and licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ---
 

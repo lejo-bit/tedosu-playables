@@ -1,15 +1,17 @@
 // =====================================================================
-// AUDIO: Web Audio engine - ambient music + sound effects (no files).
+// AUDIO: background music (mp3 file) + sound effects (Web Audio).
+// Music: "Moonsea" by Jelsonic (CC BY 4.0) - see the page credits.
 // Two independent mute toggles: music and sound effects.
 // =====================================================================
 
 let audioCtx = null;
-let musicGain = null;
 let sfxGain = null;
-let musicTimer = null;
-let musicStep = 0;
+let musicEl = null;
 let musicMuted = false;
 let sfxMuted = false;
+
+const MUSIC_SRC = 'assets/music/Jelsonic - Moonsea.mp3';
+const MUSIC_VOLUME = 0.2;
 
 function loadAudioPrefs() {
   try {
@@ -37,12 +39,21 @@ function ensureAudio() {
   if (!AC) return false;
   try {
     audioCtx = new AC();
-    musicGain = audioCtx.createGain();
-    musicGain.gain.value = 0.14;
-    musicGain.connect(audioCtx.destination);
     sfxGain = audioCtx.createGain();
     sfxGain.gain.value = 0.22;
-    sfxGain.connect(audioCtx.destination);
+    // A gentle compressor glues the layered SFX and tames harsh peaks.
+    if (typeof audioCtx.createDynamicsCompressor === 'function') {
+      const sfxComp = audioCtx.createDynamicsCompressor();
+      sfxComp.threshold.value = -18;
+      sfxComp.knee.value = 30;
+      sfxComp.ratio.value = 2;
+      sfxComp.attack.value = 0.008;
+      sfxComp.release.value = 0.25;
+      sfxGain.connect(sfxComp);
+      sfxComp.connect(audioCtx.destination);
+    } else {
+      sfxGain.connect(audioCtx.destination);
+    }
   } catch (e) {
     audioCtx = null;
     return false;
@@ -52,62 +63,35 @@ function ensureAudio() {
 
 // --- Music -----------------------------------------------------------
 
-const MUSIC_CHORDS = [
-  [261.63, 329.63, 392.0],  // C major
-  [220.0, 261.63, 329.63],  // A minor
-  [174.61, 220.0, 261.63],  // F major
-  [196.0, 246.94, 293.66]   // G major
-];
-const MUSIC_CHORD_DUR = 4.5;
-
-function playChord(freqs, start, dur) {
-  if (!audioCtx || !musicGain) return;
-  for (const f of freqs) {
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, start);
-    g.gain.exponentialRampToValueAtTime(0.14, start + 0.7);
-    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    osc.connect(g);
-    g.connect(musicGain);
-    osc.start(start);
-    osc.stop(start + dur + 0.1);
+// Lazily creates the <audio> element for the background track. Returns
+// null when the media API is unavailable (e.g. in the Node test sandbox).
+function ensureMusicElement() {
+  if (musicEl) return musicEl;
+  if (typeof Audio === 'undefined') return null;
+  try {
+    const el = new Audio(MUSIC_SRC);
+    el.loop = true;
+    el.preload = 'auto';
+    el.volume = MUSIC_VOLUME;
+    musicEl = el;
+  } catch (e) {
+    musicEl = null;
   }
+  return musicEl;
 }
 
-// Starts the ambient music loop (a soft chord progression).
+// Starts the background track. Idempotent: if the song is already playing
+// (e.g. after New / Reset / Play Again) it continues instead of restarting.
 function startMusic() {
-  if (!audioCtx || musicMuted) return;
-  stopMusic();
-  musicStep = 0;
-  musicTimer = setInterval(() => {
-    if (!audioCtx || musicMuted) return;
-    const start = audioCtx.currentTime + 0.1;
-    const chord = MUSIC_CHORDS[musicStep % MUSIC_CHORDS.length];
-    playChord(chord, start, MUSIC_CHORD_DUR);
-    // soft bass note one octave down
-    const bass = audioCtx.createOscillator();
-    const bg = audioCtx.createGain();
-    bass.type = 'sine';
-    bass.frequency.value = chord[0] / 2;
-    bg.gain.setValueAtTime(0.0001, start);
-    bg.gain.exponentialRampToValueAtTime(0.1, start + 0.5);
-    bg.gain.exponentialRampToValueAtTime(0.0001, start + MUSIC_CHORD_DUR);
-    bass.connect(bg);
-    bg.connect(musicGain);
-    bass.start(start);
-    bass.stop(start + MUSIC_CHORD_DUR + 0.1);
-    musicStep++;
-  }, MUSIC_CHORD_DUR * 1000);
+  const el = ensureMusicElement();
+  if (!el || musicMuted || !el.paused) return;
+  const p = el.play();
+  if (p && typeof p.catch === 'function') p.catch(function () { /* autoplay blocked */ });
 }
 
+// Pauses the background track; startMusic() resumes from the same spot.
 function stopMusic() {
-  if (musicTimer) {
-    clearInterval(musicTimer);
-    musicTimer = null;
-  }
+  if (musicEl && !musicEl.paused) musicEl.pause();
 }
 
 // --- Mute toggles ----------------------------------------------------
@@ -143,35 +127,168 @@ function syncAudioButtons() {
 
 // --- Sound effects ---------------------------------------------------
 
-function tone(freq, dur, type, vol, when) {
+// Routes a node through an optional stereo panner (falls back to mono).
+function stereo(node, panValue) {
+  if (!panValue || !audioCtx.createStereoPanner) return node;
+  const p = audioCtx.createStereoPanner();
+  p.pan.value = panValue;
+  node.connect(p);
+  return p;
+}
+
+// A rich, voiced note: pitch glide + fast attack + punchy decay, with an
+// optional lowpass sweep for extra body. Each call layers into the SFX mix.
+function note(opts) {
   if (!audioCtx || !sfxGain) return;
-  const t = audioCtx.currentTime + (when || 0);
+  const o = opts || {};
+  const t = audioCtx.currentTime + (o.when || 0);
+  const dur = o.dur || 0.2;
   const osc = audioCtx.createOscillator();
+  osc.type = o.type || 'triangle';
+  osc.frequency.setValueAtTime(o.freq, t);
+  if (o.endFreq && o.endFreq !== o.freq) {
+    osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.endFreq), t + dur);
+  }
+  if (o.detune) osc.detune.setValueAtTime(o.detune, t);
+  let head = osc;
+  if (o.filter) {
+    const f = audioCtx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.setValueAtTime(o.filter, t);
+    f.frequency.exponentialRampToValueAtTime(Math.max(60, o.filter * 0.25), t + dur);
+    f.Q.value = 1;
+    head.connect(f);
+    head = f;
+  }
   const g = audioCtx.createGain();
-  osc.type = type || 'sine';
-  osc.frequency.value = freq;
+  const peak = o.vol || 0.25;
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(vol || 0.3, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), t + (o.attack || 0.012));
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(g);
-  g.connect(sfxGain);
+  head.connect(g);
+  stereo(g, o.pan).connect(sfxGain);
   osc.start(t);
   osc.stop(t + dur + 0.05);
+}
+
+// White-noise buffer reused for transient ticks, pops and rumbles.
+let noiseBuffer = null;
+let noiseRate = 0;
+function getNoiseBuffer() {
+  if (!audioCtx) return null;
+  if (noiseBuffer && noiseRate === audioCtx.sampleRate) return noiseBuffer;
+  const len = Math.floor(audioCtx.sampleRate * 0.6);
+  noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  noiseRate = audioCtx.sampleRate;
+  return noiseBuffer;
+}
+
+// A filtered noise burst: the "click/thump" transient behind the notes.
+function noise(opts) {
+  if (!audioCtx || !sfxGain) return;
+  const o = opts || {};
+  const t = audioCtx.currentTime + (o.when || 0);
+  const dur = o.dur || 0.1;
+  const buf = getNoiseBuffer();
+  if (!buf) return;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  let head = src;
+  if (o.filter) {
+    const f = audioCtx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.setValueAtTime(o.filter, t);
+    f.Q.value = 0.8;
+    src.connect(f);
+    head = f;
+  }
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, o.vol || 0.15), t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  head.connect(g);
+  stereo(g, o.pan).connect(sfxGain);
+  src.start(t);
+  src.stop(t + dur + 0.05);
 }
 
 function playSfx(name) {
   if (!audioCtx || sfxMuted) return;
   switch (name) {
-    case 'click': tone(880, 0.06, 'square', 0.12); break;
-    case 'place': tone(520, 0.12, 'sine', 0.3); tone(780, 0.1, 'sine', 0.2, 0.05); break;
-    case 'mistake': tone(220, 0.2, 'sawtooth', 0.18); tone(180, 0.25, 'sawtooth', 0.15, 0.08); break;
-    case 'lose': tone(300, 0.15, 'triangle', 0.25); tone(220, 0.2, 'triangle', 0.22, 0.1); tone(150, 0.3, 'triangle', 0.2, 0.2); break;
-    case 'win': [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.28, i * 0.12)); break;
-    case 'gameover': [392, 330, 262, 196].forEach((f, i) => tone(f, 0.3, 'triangle', 0.25, i * 0.18)); break;
-    case 'special': tone(1200, 0.08, 'sine', 0.2); tone(1600, 0.1, 'sine', 0.18, 0.06); tone(2000, 0.12, 'sine', 0.16, 0.12); break;
-    case 'heart': tone(523, 0.15, 'sine', 0.3); tone(659, 0.25, 'sine', 0.28, 0.12); break;
-    case 'badluck': tone(250, 0.4, 'sawtooth', 0.16); tone(200, 0.4, 'sawtooth', 0.14, 0.15); break;
-    case 'urgent': tone(1000, 0.08, 'square', 0.12); break;
-    case 'hint': tone(700, 0.12, 'sine', 0.2); tone(900, 0.14, 'sine', 0.18, 0.08); break;
+    case 'click':
+      noise({ dur: 0.03, vol: 0.05, filter: 10000 });
+      note({ freq: 1400, endFreq: 1700, dur: 0.05, type: 'sine', vol: 0.07 });
+      break;
+
+    case 'place':
+      noise({ dur: 0.04, vol: 0.05, filter: 8000 });
+      note({ freq: 320, endFreq: 280, dur: 0.12, type: 'sine', vol: 0.22 });
+      note({ freq: 640, endFreq: 560, dur: 0.14, type: 'triangle', vol: 0.1, when: 0.015 });
+      note({ freq: 1280, dur: 0.07, type: 'sine', vol: 0.04, when: 0.015 });
+      break;
+
+    case 'mistake':
+      noise({ dur: 0.14, vol: 0.07, filter: 3000 });
+      note({ freq: 220, endFreq: 180, dur: 0.22, type: 'triangle', vol: 0.1 });
+      note({ freq: 165, endFreq: 130, dur: 0.24, type: 'sine', vol: 0.09, when: 0.02 });
+      break;
+
+    case 'lose':
+      noise({ dur: 0.2, vol: 0.06, filter: 2000 });
+      note({ freq: 330, endFreq: 310, dur: 0.2, type: 'triangle', vol: 0.14 });
+      note({ freq: 247, endFreq: 230, dur: 0.22, type: 'triangle', vol: 0.12, when: 0.16 });
+      note({ freq: 165, endFreq: 110, dur: 0.55, type: 'sine', vol: 0.11, when: 0.32 });
+      break;
+
+    case 'win': {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        note({ freq: f, dur: 0.24, type: 'sine', vol: 0.16, when: i * 0.1, pan: i % 2 ? 0.2 : -0.2 });
+        note({ freq: f * 2, dur: 0.14, type: 'sine', vol: 0.05, when: i * 0.1 });
+      });
+      note({ freq: 1046.5, dur: 0.7, type: 'sine', vol: 0.11, when: 0.4 });
+      note({ freq: 1318.5, dur: 0.7, type: 'sine', vol: 0.06, when: 0.4 });
+      break;
+    }
+
+    case 'gameover': {
+      [392, 329.63, 261.63, 196].forEach((f, i) => {
+        note({ freq: f, dur: 0.34, type: 'triangle', vol: 0.1, when: i * 0.17 });
+        note({ freq: f / 2, dur: 0.44, type: 'sine', vol: 0.08, when: i * 0.17 });
+      });
+      break;
+    }
+
+    case 'special': {
+      [1200, 1500, 1800, 2400].forEach((f, i) => {
+        note({ freq: f, endFreq: f * 1.3, dur: 0.16, type: 'sine', vol: 0.09, when: i * 0.06 });
+        note({ freq: f / 2, dur: 0.12, type: 'triangle', vol: 0.04, when: i * 0.06 });
+      });
+      break;
+    }
+
+    case 'heart':
+      note({ freq: 523.25, dur: 0.18, type: 'sine', vol: 0.16 });
+      note({ freq: 659.25, dur: 0.3, type: 'sine', vol: 0.14, when: 0.1 });
+      note({ freq: 1046.5, dur: 0.22, type: 'sine', vol: 0.07, when: 0.1 });
+      break;
+
+    case 'badluck':
+      noise({ dur: 0.3, vol: 0.06, filter: 1000 });
+      note({ freq: 220, endFreq: 140, dur: 0.44, type: 'triangle', vol: 0.1 });
+      note({ freq: 110, dur: 0.48, type: 'sine', vol: 0.09 });
+      break;
+
+    case 'urgent':
+      note({ freq: 1000, dur: 0.1, type: 'triangle', vol: 0.1 });
+      note({ freq: 1000, dur: 0.1, type: 'triangle', vol: 0.1, when: 0.14 });
+      break;
+
+    case 'hint':
+      note({ freq: 880, endFreq: 950, dur: 0.14, type: 'sine', vol: 0.12 });
+      note({ freq: 1320, dur: 0.22, type: 'sine', vol: 0.09, when: 0.09 });
+      note({ freq: 1760, dur: 0.18, type: 'sine', vol: 0.06, when: 0.09 });
+      break;
   }
 }
