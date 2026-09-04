@@ -88,6 +88,8 @@ function setLanguage(lang) {
   if (!LANGUAGES.includes(lang)) return;
   currentLang = lang;
   try { localStorage.setItem('tedosu_lang', lang); } catch (e) { /* ignore */ }
+  // Persist the language change to the cloud save (safe no-op outside YouTube).
+  Platform.saveData(Platform.buildCloudState());
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.lang = lang;
   }

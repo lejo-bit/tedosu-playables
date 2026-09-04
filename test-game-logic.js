@@ -47,7 +47,7 @@ getEl('difficulty').value = 'medium';
 
 const sandbox = {
   console, Math, Set, Array, Object, String, Number, Boolean,
-  parseInt, parseFloat, JSON,
+  parseInt, parseFloat, JSON, Promise, Date, Error,
   setInterval: () => 0, clearInterval: () => {},
   setTimeout: (fn, ms) => { sandbox.__timers.push({ fn, ms }); return sandbox.__timers.length; },
   clearTimeout: () => {},
@@ -66,7 +66,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 // Load the split source files in the same order as index.html.
-const scriptFiles = ['translations.js', 'i18n.js', 'config.js', 'state.js', 'dom.js', 'seeded.js', 'puzzle.js', 'game.js', 'audio.js', 'ui.js'];
+const scriptFiles = ['platform.js', 'translations.js', 'i18n.js', 'config.js', 'state.js', 'dom.js', 'seeded.js', 'puzzle.js', 'game.js', 'audio.js', 'ui.js'];
 const code = scriptFiles
   .map(f => fs.readFileSync(path.join(__dirname, 'js', f), 'utf8'))
   .join('\n');

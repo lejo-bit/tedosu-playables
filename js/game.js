@@ -424,6 +424,7 @@ function endGame(won) {
     winTitleEl.textContent = T('youWin');
     winMessageEl.classList.remove('danger');
     let bestNote = '';
+    let bestTime = gameState.timer; // completion time in seconds = the score
     if (gameState.timed) {
       // Best-time tracking. localStorage may be unavailable on file:// URLs
       // (some browsers throw), so it is guarded and never breaks the modal.
@@ -433,16 +434,25 @@ function endGame(won) {
         if (!best || gameState.timer < parseInt(best)) {
           localStorage.setItem(key, gameState.timer.toString());
           bestNote = T('newBest');
+          bestTime = gameState.timer;
         } else {
           bestNote = T('bestTime', { time: formatTime(parseInt(best)) });
+          bestTime = parseInt(best, 10);
         }
       } catch (e) {
         bestNote = '';
+        bestTime = gameState.timer;
       }
     }
     winMessageEl.textContent = bestNote;
     playSfx('win');
     showMessage(bestNote ? T('congratsBest', { note: bestNote }) : T('congrats'), 'success');
+
+    // YouTube Playables: report the best completion time (seconds) as the
+    // score and persist progress to the cloud save. Both are safe no-ops
+    // outside YouTube (Platform validates + floors the value internally).
+    Platform.sendScore(bestTime);
+    Platform.saveData(Platform.buildCloudState());
   } else {
     winTitleEl.textContent = T('gameOver');
     winMessageEl.classList.add('danger');

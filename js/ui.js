@@ -464,3 +464,49 @@ initLanguage();
 applyStaticTranslations();
 syncAudioButtons();
 
+// =====================================================================
+// YouTube Playables SDK: signal readiness and wire system events.
+// The start screen is already rendered (scripts run at the end of <body>),
+// so firstFrameReady() fires now, then gameReady() once the menu is fully
+// interactive. Both are safe no-ops outside YouTube and run in this order
+// so firstFrameReady() is always called before gameReady().
+// =====================================================================
+Platform.firstFrameReady();
+
+// Respect the system/YouTube audio setting from the very first frame.
+ytAudioEnabled = Platform.isAudioEnabled();
+
+Platform.initSystemEvents({
+  onAudioEnabledChange(enabled) {
+    // YouTube mute: silence music + SFX. Unmute: hand control back to the
+    // game's own music toggle (music resumes only while a game is active).
+    ytAudioEnabled = !!enabled;
+    if (ytAudioEnabled) {
+      if (!musicMuted && gameState.gameActive) startMusic();
+    } else {
+      stopMusic();
+    }
+  },
+  onPause() {
+    // Music pauses on every pause type (including app exit). Game timers are
+    // intentionally left running; see the note in the final report.
+    stopMusic();
+  },
+  onResume() {
+    if (ytAudioEnabled && !musicMuted && gameState.gameActive) startMusic();
+  }
+});
+
+Platform.gameReady();
+
+// Restore any cloud-saved progress (best times + preferences). The local
+// values loaded above are re-applied after the cloud state is merged, so a
+// restored language/audio setting takes effect. Safe no-op outside YouTube.
+Platform.loadData().then(function (state) {
+  if (state) Platform.applyCloudState(state);
+  loadAudioPrefs();
+  initLanguage();
+  applyStaticTranslations();
+  syncAudioButtons();
+});
+

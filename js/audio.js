@@ -9,8 +9,11 @@ let sfxGain = null;
 let musicEl = null;
 let musicMuted = false;
 let sfxMuted = false;
+// YouTube/system-level mute (set via Platform.onAudioEnabledChange). Defaults
+// to enabled so local/GitHub Pages play normally.
+let ytAudioEnabled = true;
 
-const MUSIC_SRC = 'assets/music/Jelsonic - Moonsea.mp3';
+const MUSIC_SRC = 'assets/music/jelsonic_moonsea.mp3';
 const MUSIC_VOLUME = 0.2;
 
 function loadAudioPrefs() {
@@ -25,6 +28,8 @@ function persistAudioPrefs() {
     localStorage.setItem('tedosu_music_muted', musicMuted ? '1' : '0');
     localStorage.setItem('tedosu_sfx_muted', sfxMuted ? '1' : '0');
   } catch (e) { /* ignore */ }
+  // Mirror the preference change to the cloud save (safe no-op outside YouTube).
+  Platform.saveData(Platform.buildCloudState());
 }
 
 // Creates (or resumes) the AudioContext. Must be called from a user gesture.
@@ -84,7 +89,7 @@ function ensureMusicElement() {
 // (e.g. after New / Reset / Play Again) it continues instead of restarting.
 function startMusic() {
   const el = ensureMusicElement();
-  if (!el || musicMuted || !el.paused) return;
+  if (!el || musicMuted || !ytAudioEnabled || !el.paused) return;
   const p = el.play();
   if (p && typeof p.catch === 'function') p.catch(function () { /* autoplay blocked */ });
 }
@@ -215,7 +220,7 @@ function noise(opts) {
 }
 
 function playSfx(name) {
-  if (!audioCtx || sfxMuted) return;
+  if (!audioCtx || sfxMuted || !ytAudioEnabled) return;
   switch (name) {
     case 'click':
       noise({ dur: 0.03, vol: 0.05, filter: 10000 });

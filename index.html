@@ -13,10 +13,21 @@
   <meta name="theme-color" content="#ffffff" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Font loads asynchronously (media="print" swapped to "all" on load) so a
+       slow/blocked Google Fonts request can never delay first paint, the SDK
+       calls, or gameReady(). The font itself (Outfit) is unchanged. -->
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
     rel="stylesheet"
+    media="print"
+    onload="this.media='all'"
   />
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </noscript>
   <link rel="stylesheet" href="style.css?v=2.10.0" />
 </head>
 <body>
@@ -189,6 +200,11 @@
     </div>
   </div>
 
+  <!-- YouTube Playables SDK: MUST load before any game code. Runs as a no-op
+       when served locally or on GitHub Pages. -->
+  <script src="https://www.youtube.com/game_api/v1"></script>
+  <!-- Safe wrapper around the SDK (works everywhere, incl. the Node tests). -->
+  <script src="js/platform.js?v=2.10.0"></script>
   <script src="js/translations.js?v=2.10.0"></script>
   <script src="js/i18n.js?v=2.10.0"></script>
   <script src="js/config.js?v=2.10.0"></script>
