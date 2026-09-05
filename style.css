@@ -88,6 +88,11 @@ body {
 }
 
 /* ===== Start screen ===== */
+/* The rotating cat logo (assets/cats/1..4.png) is hidden from the start page:
+   the menu should show just the title so it fits a phone screen. The element
+   stays in the DOM so the logo/game logic keeps working. */
+#logo { display: none; }
+
 .hero { text-align: center; margin: 6px 0 28px; }
 
 .hero-emoji {
@@ -882,8 +887,7 @@ body {
   .container { padding: 16px 14px; border-radius: 20px; }
 
   /* Smaller hero so the menu is short enough to fit on screen */
-  .hero { margin: 2px 0 12px; }
-  .logo { width: 60px; height: 60px; }
+  .hero { margin: 2px 0 10px; }
   .title { font-size: clamp(1.7rem, 8vw, 2.4rem); line-height: 1.05; }
   .tagline { margin-top: 3px; font-size: 0.9rem; }
 
