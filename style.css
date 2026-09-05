@@ -871,6 +871,37 @@ body {
   .win-stat { padding: 10px 6px; }
 }
 
+/* ===== Compact start menu for phones =====
+   The whole start screen should fit on a phone without scrolling — YouTube's
+   Playables SDK disables page scrolling anyway, so the menu has to stand on its
+   own. On small screens we tighten the hero, the settings card, and drop the
+   optional helper descriptions (labels + selects already convey the choices). */
+@media (max-width: 560px) {
+  body { padding: 8px 10px; }
+
+  .container { padding: 16px 14px; border-radius: 20px; }
+
+  /* Smaller hero so the menu is short enough to fit on screen */
+  .hero { margin: 2px 0 12px; }
+  .logo { width: 60px; height: 60px; }
+  .title { font-size: clamp(1.7rem, 8vw, 2.4rem); line-height: 1.05; }
+  .tagline { margin-top: 3px; font-size: 0.9rem; }
+
+  /* Compact, single-column settings */
+  .card { padding: 14px 14px 16px; margin-bottom: 12px; border-radius: 16px; }
+  .settings-card { gap: 9px; }
+  .setting-group { gap: 4px; }
+  .setting-group label { font-size: 0.72rem; letter-spacing: 0.8px; }
+  .setting-group select { padding: 10px 12px; font-size: 0.95rem; }
+  .seed-input { padding: 10px 12px; font-size: 0.95rem; }
+  .card .mode-description { display: none; }
+
+  .btn-primary { padding: 14px 24px; font-size: 1.02rem; }
+
+  /* Keep the footer tight below the menu */
+  .credits { margin: 10px auto 2px; font-size: 0.66rem; line-height: 1.5; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
