@@ -266,6 +266,58 @@ const Platform = (function () {
     return true;
   }
 
+  // Watch body-style changes only if we haven't armed the observer yet, and
+  // stop watching once the page is fully loaded (the SDK only applies its
+  // body styling once at startup).
+  let scrollWatchArmed = false;
+
+  function restoreBodyScrolling() {
+    if (typeof document === 'undefined' || !document.body) return;
+    try {
+      const s = document.body.style;
+      if (s.touchAction && s.touchAction !== 'auto') s.touchAction = 'auto';
+      if (s.userSelect) s.userSelect = '';
+      if (s.overscrollBehavior) s.overscrollBehavior = '';
+    } catch (e) { /* ignore */ }
+  }
+
+  // The YouTube Playables SDK disables native page scrolling and text selection
+  // by stamping inline styles on <body>:
+  //   `touch-action: none; overscroll-behavior: none; user-select: none;`
+  // That is the correct full-screen layout for a real Playable, but when the very
+  // same page is opened as a normal website (local file / GitHub Pages) on a phone
+  // it silently breaks finger-scrolling — wheel and JS scrolling keep working, so
+  // it can look like a device-only bug. This restores native scrolling whenever we
+  // are NOT running inside the real Playables environment. Because the SDK applies
+  // its styling around DOM-ready time (after our end-of-body code runs), we also
+  // watch the body's style attribute and undo any touch-action:none it writes.
+  function enableScrollingWhenStandalone() {
+    if (typeof document === 'undefined' || !document.body) return;
+    try {
+      const yt = getSdk();
+      if (yt && yt.IN_PLAYABLES_ENV) return; // real Playable: keep YouTube's full-screen layout
+    } catch (e) { /* ignore */ }
+
+    restoreBodyScrolling();
+
+    try {
+      if (typeof MutationObserver === 'undefined' || scrollWatchArmed) return;
+      scrollWatchArmed = true;
+      const observer = new MutationObserver(function () {
+        if (!(getSdk() && getSdk().IN_PLAYABLES_ENV)) restoreBodyScrolling();
+      });
+      observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+      const stop = function () {
+        try { observer.disconnect(); } catch (e) { /* ignore */ }
+        scrollWatchArmed = false;
+      };
+      if (document.readyState === 'complete') stop();
+      else if (typeof window !== 'undefined' && window.addEventListener) {
+        window.addEventListener('load', stop, { once: true });
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   return {
     firstFrameReady,
     gameReady,
@@ -275,6 +327,7 @@ const Platform = (function () {
     buildCloudState,
     applyCloudState,
     initSystemEvents,
-    isAudioEnabled
+    isAudioEnabled,
+    enableScrollingWhenStandalone
   };
 })();

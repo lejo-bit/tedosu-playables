@@ -55,11 +55,9 @@ body {
   border-radius: 50%;
   filter: blur(60px);
   opacity: 0.5;
-  /* Promote each blob to its own compositor layer so the blur is rasterized
-     ONCE and the float animation only moves an already-blurred texture.
-     Without this, Chromium (Chrome / Brave on Android) re-rasterizes the big
-     blurred layers on every animation frame and starves the touch-scroll
-     pipeline, making the page un-scrollable on phones. */
+  /* Perf tweak: promote each blob to its own compositor layer so the blur is
+     rasterized once and the float animation only moves an already-blurred
+     texture, instead of re-rasterizing the large blurred layers every frame. */
   will-change: transform;
   transform: translateZ(0);
   animation: float 18s ease-in-out infinite;
