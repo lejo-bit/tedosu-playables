@@ -46,8 +46,6 @@ body {
   inset: 0;
   z-index: -1;
   overflow: hidden;
-  /* Decorative layer: never intercept taps / touch-scroll gestures. */
-  pointer-events: none;
 }
 
 .blob {
@@ -55,11 +53,6 @@ body {
   border-radius: 50%;
   filter: blur(60px);
   opacity: 0.5;
-  /* Perf tweak: promote each blob to its own compositor layer so the blur is
-     rasterized once and the float animation only moves an already-blurred
-     texture, instead of re-rasterizing the large blurred layers every frame. */
-  will-change: transform;
-  transform: translateZ(0);
   animation: float 18s ease-in-out infinite;
 }
 

@@ -471,12 +471,6 @@ syncAudioButtons();
 // interactive. Both are safe no-ops outside YouTube and run in this order
 // so firstFrameReady() is always called before gameReady().
 // =====================================================================
-// Undo the SDK's `touch-action:none` on <body> when running as a normal
-// website (local / GitHub Pages) so the page still scrolls by touch on phones.
-// The SDK stamps that style around DOM-ready time, so Platform installs a
-// one-shot observer that also restores scrolling whenever the SDK writes it.
-Platform.enableScrollingWhenStandalone();
-
 Platform.firstFrameReady();
 
 // Respect the system/YouTube audio setting from the very first frame.
